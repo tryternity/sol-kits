@@ -111,6 +111,7 @@
   /* Specify path patterns to exclude from compilation. */
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "test"
   ]
 }
