@@ -1,7 +1,7 @@
 import {Config, JsonDB} from 'node-json-db';
-import {ePrint} from "./index";
+import {ePrint} from "./kits";
 
-export class LocalDb {
+export class Store {
     public db: JsonDB;
 
     constructor(path: string) {
