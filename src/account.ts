@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {Keypair, PublicKey} from "@solana/web3.js";
 import fs from "fs";
 import {Buffer} from "buffer";
@@ -25,6 +27,28 @@ export module account {
             return new PublicKey(Buffer.from(value.substring(2), 'hex'));
         } else {
             return new PublicKey(value);
+        }
+    }
+
+    export type SEED_TYPE = PublicKey | string | number;
+
+    export function pda(programId: PublicKey, seeds: SEED_TYPE[]): PublicKey {
+        let buffs = new Array<Buffer>();
+        for (let seed of seeds) {
+            buffs.push(seed instanceof PublicKey ? seed.toBuffer() : Buffer.from(seed + ""))
+        }
+        return PublicKey.findProgramAddressSync(buffs, programId)[0];
+    }
+
+    export async function dataOfPda(fetch: () => any): Promise<any> {
+        try {
+            return await fetch();
+        } catch (e) {
+            if ((e as any).message.indexOf("Account does not exist") > -1) {
+                return null;
+            } else {
+                throw e;
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {Config, JsonDB} from 'node-json-db';
 import {ePrint} from "./kits";
 
