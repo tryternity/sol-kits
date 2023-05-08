@@ -4,7 +4,9 @@ import {Keypair, PublicKey} from "@solana/web3.js";
 import fs from "fs";
 import {Buffer} from "buffer";
 import {Wallet} from "@project-serum/anchor";
-import {kits} from "./kits";
+import {ePrint, kits} from "./kits";
+import * as token from "@solana/spl-token";
+import {env} from "./env";
 
 export type Address = PublicKey | Keypair | Buffer | string | Wallet;
 
@@ -59,5 +61,11 @@ export module account {
 
     export function localWallet(): Keypair {
         return account.fromFile(kits.userHome() + "/.config/solana/id.json");
+    }
+
+    export async function ata(user: Address, mint: PublicKey): Promise<PublicKey> {
+        let key = account.toPubicKey(user);
+        let ata = await token.getOrCreateAssociatedTokenAccount(env.defaultConnection, env.wallet, mint, key).catch(ePrint)
+        return ata.address;
     }
 }

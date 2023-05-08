@@ -50,7 +50,7 @@ export module tx {
         ).catch(ePrint);
     }
 
-    export async function airDrop(user: PublicKey, options?: {
+    export async function airDrop(user: Address, options?: {
         connection?: Connection,
         payerOrOwner?: Keypair,
         amount?: number,
@@ -58,16 +58,17 @@ export module tx {
     }): Promise<string> {
         let connection = options?.connection ?? env.defaultConnection;
         let amount = options?.amount ?? 1;
+        let userKey = account.toPubicKey(user);
         if (options?.mint == undefined) {
-            const signature = await connection.requestAirdrop(user, web3.LAMPORTS_PER_SOL * amount).catch(ePrint);
+            const signature = await connection.requestAirdrop(userKey, web3.LAMPORTS_PER_SOL * amount).catch(ePrint);
             await connection.confirmTransaction(signature).catch(ePrint);
-            await connection.getBalance(user, {commitment: "confirmed"}).catch(ePrint);
+            await connection.getBalance(userKey, {commitment: "confirmed"}).catch(ePrint);
             return signature;
         } else {
-            console.log("Begin mintTo", user.toBase58(), options.mint.toBase58(), amount);
+            console.log("Begin mintTo", userKey.toBase58(), options.mint.toBase58(), amount);
             let payerOrOwner = options.payerOrOwner ?? env.wallet;
             let mint = await getMint(connection, options.mint).catch(ePrint);
-            let ata = await getOrCreateAssociatedTokenAccount(connection, payerOrOwner, options.mint, user);
+            let ata = await getOrCreateAssociatedTokenAccount(connection, payerOrOwner, options.mint, userKey);
             return await token.mintTo(
                 connection,
                 payerOrOwner,
@@ -87,8 +88,7 @@ export module tx {
     }): Promise<string[]> {
         let sigs: string[] = [];
         for (let user of toUsers) {
-            let to = account.toPubicKey(user);
-            sigs.push(await airDrop(to, options));
+            sigs.push(await airDrop(user, options));
         }
         return sigs;
     }
