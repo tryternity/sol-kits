@@ -46,13 +46,13 @@ export module tx {
         ).catch(ePrint);
     }
 
-    export async function airdrop(arg: {
+    export async function airDrop(arg: {
         connection: Connection,
         payerOrOwner: Keypair,
         toUser: PublicKey,
         amount?: number,
         mint?: PublicKey
-    }) {
+    }): Promise<string> {
         let connection = arg.connection;
         let owner = arg.toUser;
         let amount = arg.amount ?? 1;
@@ -60,10 +60,11 @@ export module tx {
             const signature = await connection.requestAirdrop(owner, amount).catch(ePrint);
             await connection.confirmTransaction(signature).catch(ePrint);
             await connection.getBalance(owner, {commitment: "confirmed"}).catch(ePrint);
+            return signature;
         } else {
             console.log("Begin mintTo", owner.toBase58(), arg.mint.toBase58(), amount);
             let ata = await getOrCreateAssociatedTokenAccount(connection, arg.payerOrOwner, arg.mint, owner);
-            await token.mintTo(
+            return await token.mintTo(
                 connection,
                 arg.payerOrOwner,
                 arg.mint,
@@ -80,11 +81,11 @@ export module tx {
         from: Keypair,
         to: PublicKey,
         amount?: number
-    }) {
+    }): Promise<string> {
         let connection = arg.connection;
         let payer = arg.from;
         let fromAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, payer.publicKey)).address;
         let toAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, arg.to)).address;
-        await token.transfer(connection, payer, fromAccount, toAccount, payer.publicKey, arg.amount ?? 1).catch(ePrint);
+        return await token.transfer(connection, payer, fromAccount, toAccount, payer.publicKey, arg.amount ?? 1).catch(ePrint);
     }
 }
