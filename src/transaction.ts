@@ -1,11 +1,13 @@
 // noinspection JSUnusedGlobalSymbols
 
 import * as anchor from "@project-serum/anchor";
-import {Connection, Keypair, PublicKey, Transaction} from "@solana/web3.js";
+import {Cluster as ClusterA, clusterApiUrl, Connection, Keypair, PublicKey, Transaction} from "@solana/web3.js";
 import {ePrint} from "./kits";
 import * as token from "@solana/spl-token";
 import {getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
+import {account, Address} from "./account";
 
+export type Cluster = ClusterA | "local";
 export module tx {
     export function additionalComputeBudget(units: number = 400000): anchor.web3.TransactionInstruction[] {
         return [anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
@@ -75,6 +77,26 @@ export module tx {
         }
     }
 
+    export async function airDrops(arg: {
+        connection: Connection,
+        payerOrOwner: Keypair,
+        toUsers: Address[],
+        amount?: number,
+        mint?: PublicKey
+    }): Promise<string[]> {
+        let sigs: string[] = [];
+        for (let user of arg.toUsers) {
+            sigs.push(await airDrop({
+                connection: arg.connection,
+                payerOrOwner: arg.payerOrOwner,
+                toUser: account.toPubicKey(user),
+                amount: arg.amount,
+                mint: arg.mint
+            }));
+        }
+        return sigs;
+    }
+
     export async function transfer(arg: {
         connection: Connection,
         mint: PublicKey,
@@ -87,5 +109,13 @@ export module tx {
         let fromAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, payer.publicKey)).address;
         let toAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, arg.to)).address;
         return await token.transfer(connection, payer, fromAccount, toAccount, payer.publicKey, arg.amount ?? 1).catch(ePrint);
+    }
+
+    export function connection(cluster: Cluster = "devnet"): Connection {
+        let network = cluster == "local" ? "http://127.0.0.1:8899" : clusterApiUrl(cluster);
+        return new Connection(network, {
+            commitment: 'processed',
+            confirmTransactionInitialTimeout: 120 * 1000
+        });
     }
 }
