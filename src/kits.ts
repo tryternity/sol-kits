@@ -4,6 +4,8 @@ import {Buffer} from "buffer";
 import crypto from "crypto";
 import {v4 as v4_uuid} from 'uuid';
 
+const {deasync} = require("@kaciras/deasync");
+
 export const ePrint = (e: any) => {
     console.log(e);
     throw e;
@@ -51,5 +53,9 @@ export module kits {
     export function userHome(): string {
         const os = require("os");
         return os.homedir();
+    }
+
+    export function sync<R>(fn: Promise<R> | (() => Promise<R>)): R {
+        return deasync(fn instanceof Promise ? fn : new Promise(fn));
     }
 }
