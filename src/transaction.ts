@@ -1,10 +1,11 @@
 // noinspection JSUnusedGlobalSymbols
 
 import * as anchor from "@project-serum/anchor";
+import {web3} from "@project-serum/anchor";
 import {Cluster as ClusterA, clusterApiUrl, Connection, Keypair, PublicKey, Transaction} from "@solana/web3.js";
 import {ePrint} from "./kits";
 import * as token from "@solana/spl-token";
-import {getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
+import {getMint, getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
 import {account, Address} from "./account";
 
 export type Cluster = ClusterA | "local";
@@ -35,23 +36,24 @@ export module tx {
 
     export async function createMint(arg: {
         connection: Connection,
-        payer: Keypair,
+        payer?: Keypair,
         decimals?: number
     }): Promise<PublicKey> {
         console.log("Begin to createGmtToken");
+        let payer = arg.payer ?? account.localWallet();
         return await token.createMint(
             arg.connection,
-            arg.payer,
-            arg.payer.publicKey,
-            arg.payer.publicKey,
+            payer,
+            payer.publicKey,
+            payer.publicKey,
             arg.decimals ?? 0
         ).catch(ePrint);
     }
 
     export async function airDrop(arg: {
         connection: Connection,
-        payerOrOwner: Keypair,
         toUser: PublicKey,
+        payerOrOwner?: Keypair,
         amount?: number,
         mint?: PublicKey
     }): Promise<string> {
@@ -59,20 +61,22 @@ export module tx {
         let owner = arg.toUser;
         let amount = arg.amount ?? 1;
         if (arg.mint == undefined) {
-            const signature = await connection.requestAirdrop(owner, amount).catch(ePrint);
+            const signature = await connection.requestAirdrop(owner, web3.LAMPORTS_PER_SOL * amount).catch(ePrint);
             await connection.confirmTransaction(signature).catch(ePrint);
             await connection.getBalance(owner, {commitment: "confirmed"}).catch(ePrint);
             return signature;
         } else {
             console.log("Begin mintTo", owner.toBase58(), arg.mint.toBase58(), amount);
-            let ata = await getOrCreateAssociatedTokenAccount(connection, arg.payerOrOwner, arg.mint, owner);
+            let payerOrOwner = arg.payerOrOwner ?? account.localWallet();
+            let mint = await getMint(connection, arg.mint).catch(ePrint);
+            let ata = await getOrCreateAssociatedTokenAccount(connection, payerOrOwner, arg.mint, owner);
             return await token.mintTo(
                 connection,
-                arg.payerOrOwner,
+                payerOrOwner,
                 arg.mint,
                 ata.address,
-                arg.payerOrOwner.publicKey,
-                amount
+                payerOrOwner.publicKey,
+                amount * Math.pow(10, mint.decimals)
             ).catch(ePrint);
         }
     }
@@ -99,16 +103,29 @@ export module tx {
 
     export async function transfer(arg: {
         connection: Connection,
-        mint: PublicKey,
         from: Keypair,
         to: PublicKey,
-        amount?: number
+        amount?: number,
+        mint?: PublicKey
     }): Promise<string> {
         let connection = arg.connection;
         let payer = arg.from;
-        let fromAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, payer.publicKey)).address;
-        let toAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, arg.to)).address;
-        return await token.transfer(connection, payer, fromAccount, toAccount, payer.publicKey, arg.amount ?? 1).catch(ePrint);
+        let amount = arg.amount ?? 1;
+        if (arg.mint == undefined) {
+            const instruction = web3.SystemProgram.transfer({
+                    fromPubkey: arg.from.publicKey,
+                    toPubkey: arg.to,
+                    lamports: web3.LAMPORTS_PER_SOL * amount
+                }
+            );
+            let tx = new web3.Transaction().add(instruction);
+            return await web3.sendAndConfirmTransaction(connection, tx, [arg.from]).catch(ePrint);
+        } else {
+            let mint = await getMint(connection, arg.mint).catch(ePrint);
+            let fromAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, payer.publicKey)).address;
+            let toAccount = (await getOrCreateAssociatedTokenAccount(connection, payer, arg.mint, arg.to)).address;
+            return await token.transfer(connection, payer, fromAccount, toAccount, payer.publicKey, amount * Math.pow(10, mint.decimals)).catch(ePrint);
+        }
     }
 
     export function connection(cluster: Cluster = "devnet"): Connection {

@@ -4,6 +4,7 @@ import {Keypair, PublicKey} from "@solana/web3.js";
 import fs from "fs";
 import {Buffer} from "buffer";
 import {Wallet} from "@project-serum/anchor";
+import {kits} from "./kits";
 
 export type Address = PublicKey | Keypair | Buffer | string | Wallet;
 
@@ -54,5 +55,9 @@ export module account {
                 throw e;
             }
         }
+    }
+
+    export function localWallet(): Keypair {
+        return account.fromFile(kits.userHome() + "/.config/solana/id.json");
     }
 }

@@ -47,4 +47,9 @@ export module kits {
     export function now(second: boolean = true): number {
         return Math.floor(new Date().getTime() / (second ? 1000 : 1))
     }
+
+    export function userHome(): string {
+        const os = require("os");
+        return os.homedir();
+    }
 }
