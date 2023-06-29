@@ -1,6 +1,12 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {CreateNftInput, keypairIdentity, Metaplex, mockStorage, Nft} from '@metaplex-foundation/js';
+import {
+    CreateCompressedNftOutput,
+    CreateNftInput,
+    keypairIdentity,
+    Metaplex,
+    mockStorage
+} from '@metaplex-foundation/js';
 import {ePrint} from "./kits";
 import {env} from "./env";
 import {PublicKey} from "@solana/web3.js";
@@ -19,7 +25,7 @@ export module mx {
         uri?: string,
         name?: string,
         sellerFeeBasisPoints?: number,
-    } & CreateNftInput): Promise<Nft> {
+    } & CreateNftInput): Promise<CreateCompressedNftOutput> {
         let mx: Metaplex = await metaplex();
         let out = await mx.nfts().create({
             uri: options?.uri ?? "https://collection.mooar.com/token/solana/ad7149197b1740c7a16cfd6e4a6caaee/81",
@@ -31,7 +37,7 @@ export module mx {
         let signature = out.response.signature;
         console.log("sig: " + signature, "nft: " + out.nft.address.toBase58(), "ata: " + out.tokenAddress.toBase58());
         await mx.connection.confirmTransaction(signature).catch(ePrint);
-        return out.nft;
+        return out;
     }
 
     /**
