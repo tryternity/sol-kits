@@ -12,6 +12,8 @@ export type Address = PublicKey | Keypair | Buffer | string | Wallet;
 
 export module account {
 
+    import sync = kits.sync;
+
     export function fromBytes(key_bytes: number[]): Keypair {
         return Keypair.fromSecretKey(new Uint8Array(key_bytes))
     }
@@ -67,5 +69,9 @@ export module account {
         let key = account.toPubicKey(user);
         let ata = await token.getOrCreateAssociatedTokenAccount(env.defaultConnection, env.wallet, mint, key).catch(ePrint)
         return ata.address;
+    }
+
+    export function ataSync(user: Address, mint: PublicKey): PublicKey {
+        return sync(ata(user, mint));
     }
 }

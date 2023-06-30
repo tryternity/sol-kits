@@ -3,13 +3,15 @@
 import * as anchor from "@project-serum/anchor";
 import {web3} from "@project-serum/anchor";
 import {Connection, Keypair, PublicKey, Transaction} from "@solana/web3.js";
-import {ePrint} from "./kits";
+import {ePrint, kits} from "./kits";
 import * as token from "@solana/spl-token";
 import {getMint, getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
 import {account, Address} from "./account";
 import {env} from "./env";
 
 export module tx {
+    import sync = kits.sync;
+
     export function additionalComputeBudget(units: number = 400000): anchor.web3.TransactionInstruction[] {
         return [anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
             units: units
@@ -50,6 +52,14 @@ export module tx {
         ).catch(ePrint);
     }
 
+    export function createMintSync(options?: {
+        connection?: Connection,
+        payer?: Keypair,
+        decimals?: number
+    }): PublicKey {
+        return sync(createMint(options));
+    }
+
     export async function airDrop(user: Address, options?: {
         connection?: Connection,
         payerOrOwner?: Keypair,
@@ -80,6 +90,15 @@ export module tx {
         }
     }
 
+    export function airDropSync(user: Address, options?: {
+        connection?: Connection,
+        payerOrOwner?: Keypair,
+        amount?: number,
+        mint?: PublicKey
+    }): string {
+        return sync(airDrop(user, options));
+    }
+
     export async function airDrops(toUsers: Address[], options: {
         connection?: Connection,
         from?: Keypair,
@@ -91,6 +110,15 @@ export module tx {
             sigs.push(await airDrop(user, options));
         }
         return sigs;
+    }
+
+    export function airDropsSync(toUsers: Address[], options: {
+        connection?: Connection,
+        from?: Keypair,
+        amount?: number,
+        mint?: PublicKey
+    }): string[] {
+        return sync(airDrops(toUsers, options));
     }
 
     export async function transfer(to: Address, options?: {
@@ -117,5 +145,14 @@ export module tx {
             let toAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, options.mint, account.toPubicKey(to))).address;
             return await token.transfer(conn, payer, fromAccount, toAccount, payer.publicKey, amount * Math.pow(10, mint.decimals)).catch(ePrint);
         }
+    }
+
+    export function transferSync(to: Address, options?: {
+        connection?: Connection,
+        from?: Keypair,
+        amount?: number,
+        mint?: PublicKey
+    }): string {
+        return sync(transfer(to, options));
     }
 }

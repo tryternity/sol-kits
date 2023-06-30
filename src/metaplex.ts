@@ -7,19 +7,24 @@ import {
     Metaplex,
     mockStorage
 } from '@metaplex-foundation/js';
-import {ePrint} from "./kits";
+import {ePrint, kits} from "./kits";
 import {env} from "./env";
 import {PublicKey} from "@solana/web3.js";
 import {tx} from "./transaction";
 import {account, Address} from "./account";
 
-export module mx {
+export module mxKit {
+    import sync = kits.sync;
     export let metaplex = async (): Promise<Metaplex> => {
         return Metaplex.make(env.defaultConnection)
             .use(keypairIdentity(env.wallet))
             .use(mockStorage())
             .use(keypairIdentity(env.wallet));
     };
+
+    export function metaplexSync() {
+        return sync(metaplex());
+    }
 
     export async function createNFT(tokenOwner: Address, options?: {
         uri?: string,
@@ -40,6 +45,14 @@ export module mx {
         return out;
     }
 
+    export function createNFTSync(tokenOwner: Address, options?: {
+        uri?: string,
+        name?: string,
+        sellerFeeBasisPoints?: number,
+    } & CreateNftInput): CreateCompressedNftOutput {
+        return sync(createNFT(tokenOwner, options));
+    }
+
     /**
      * 创建一个普通的mint token当作nft进行测试
      *
@@ -50,5 +63,9 @@ export module mx {
         let mint = await tx.createMint();
         await tx.airDrop(tokenOwner, {amount: 1, mint});
         return [mint, await account.ata(tokenOwner, mint)];
+    }
+
+    export function simulateCreateNftSync(tokenOwner: Address): [PublicKey, PublicKey] {
+        return sync(simulateCreateNft(tokenOwner));
     }
 }
