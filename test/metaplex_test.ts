@@ -1,19 +1,19 @@
 import {BigNumber, Metaplex} from "@metaplex-foundation/js";
-import {account, env, ePrint, mx} from "../dist";
+import {account, env, ePrint, mxKit} from "../dist";
 import {BN} from "@project-serum/anchor";
 
 describe("metaplex test", () => {
     it("create nft", async () => {
-        await mx.createNFT("CyW2wFYxPnqHaVCURVWb3LK2mAMsYfMxTXnNdbiFQy9r")
+        await mxKit.createNFT("CyW2wFYxPnqHaVCURVWb3LK2mAMsYfMxTXnNdbiFQy9r")
     })
 
     it("simulate create nft", async () => {
-        let [mint, ata] = await mx.simulateCreateNft("CyW2wFYxPnqHaVCURVWb3LK2mAMsYfMxTXnNdbiFQy9r")
+        let [mint, ata] = await mxKit.simulateCreateNft("CyW2wFYxPnqHaVCURVWb3LK2mAMsYfMxTXnNdbiFQy9r")
         console.log(mint.toBase58(), ata.toBase58())
     })
 
     it("create pNFT", async () => {
-        let metaplex: Metaplex = await mx.metaplex();
+        let metaplex: Metaplex = await mxKit.metaplex();
         let out = await metaplex.nfts().create({
             uri: "https://collection.mooar.com/token/solana/ad7149197b1740c7a16cfd6e4a6caaee/81",
             name: 'NFTC',

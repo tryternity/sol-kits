@@ -15,23 +15,32 @@ import {account, Address} from "./account";
 
 export module mxKit {
     import sync = kits.sync;
-    export let metaplex = async (): Promise<Metaplex> => {
-        return Metaplex.make(env.defaultConnection)
+    export let metaplex = (programId?: string | PublicKey): Metaplex => {
+        let mx = Metaplex.make(env.defaultConnection)
             .use(keypairIdentity(env.wallet))
             .use(mockStorage())
             .use(keypairIdentity(env.wallet));
+        if (programId) {
+            mx.use({
+                install(metaplex: Metaplex): void {
+                    metaplex.programs().getAuctionHouse = () => {
+                        return {
+                            name: "AuctionHouseProgram",
+                            address: programId instanceof PublicKey ? programId : new PublicKey(programId),
+                        };
+                    }
+                }
+            })
+        }
+        return mx;
     };
-
-    export function metaplexSync() {
-        return sync(metaplex());
-    }
 
     export async function createNFT(tokenOwner: Address, options?: {
         uri?: string,
         name?: string,
         sellerFeeBasisPoints?: number,
     } & CreateNftInput): Promise<CreateCompressedNftOutput> {
-        let mx: Metaplex = await metaplex();
+        let mx: Metaplex = metaplex();
         let out = await mx.nfts().create({
             uri: options?.uri ?? "https://collection.mooar.com/token/solana/ad7149197b1740c7a16cfd6e4a6caaee/81",
             name: options?.name ?? 'My NFT',
