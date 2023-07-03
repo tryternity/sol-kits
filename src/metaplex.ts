@@ -9,7 +9,7 @@ import {
 } from '@metaplex-foundation/js';
 import {ePrint} from "./kits";
 import {env} from "./env";
-import {PublicKey} from "@solana/web3.js";
+import {Connection, PublicKey} from "@solana/web3.js";
 import {tx} from "./transaction";
 import {account, Address} from "./account";
 
@@ -64,5 +64,29 @@ export module mxKit {
         let mint = await tx.createMint();
         await tx.airDrop(tokenOwner, {amount: 1, mint});
         return [mint, await account.ata(tokenOwner, mint)];
+    }
+
+    /**
+     * 判断一个collection mint是否有效(是否有metadata)
+     * @param collectionMint
+     * @param conn
+     */
+    export async function validateCollectionMint(collectionMint: PublicKey | string, conn: Connection): Promise<boolean> {
+        let connection = conn ? conn : env.defaultConnection;
+        let mintKey = collectionMint instanceof PublicKey ? collectionMint : new PublicKey(collectionMint);
+        let mintInfo = await connection.getAccountInfo(mintKey);
+        if (mintInfo == undefined || mintInfo.lamports == 0) {
+            return false;
+        }
+        let TOKEN_METADATA_PID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+        let [metaKey] = PublicKey.findProgramAddressSync([
+                Buffer.from("metadata"),
+                TOKEN_METADATA_PID.toBuffer(),
+                mintKey.toBuffer()
+            ],
+            TOKEN_METADATA_PID
+        );
+        let metaInfo = await connection.getAccountInfo(metaKey);
+        return metaInfo != undefined && metaInfo.lamports > 0;
     }
 }
