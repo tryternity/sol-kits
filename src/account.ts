@@ -68,4 +68,18 @@ export module account {
         let ata = await token.getOrCreateAssociatedTokenAccount(env.defaultConnection, env.wallet, mint, key).catch(ePrint)
         return ata.address;
     }
+
+    export function findProgramAddress(programId: PublicKey | string, buffers: (String | PublicKey | number | Buffer)[]): [PublicKey, number] {
+        let seeds: Buffer[] = buffers.map((v, _i) => {
+            if (v instanceof PublicKey) {
+                return v.toBuffer();
+            } else if (v instanceof Buffer) {
+                return v;
+            } else {
+                return Buffer.from(v + "");
+            }
+        });
+        return PublicKey.findProgramAddressSync(seeds,
+            programId instanceof PublicKey ? programId : new PublicKey(programId));
+    }
 }
