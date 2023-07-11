@@ -87,6 +87,6 @@ export module mxKit {
             TOKEN_METADATA_PID
         );
         let metaInfo = await connection.getAccountInfo(metaKey);
-        return metaInfo != undefined && metaInfo.lamports > 0;
+        return metaInfo != undefined && metaInfo.lamports > 0 && metaInfo.data.length > 0;
     }
 }
