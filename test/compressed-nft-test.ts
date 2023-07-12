@@ -1,17 +1,16 @@
 import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
-import {getLeafAssetId,} from '@metaplex-foundation/mpl-bubblegum';
 import {env} from "../dist";
 import {AccountMeta, PublicKey} from "@solana/web3.js";
-import {BN} from "@project-serum/anchor";
 import {cNFT} from "../src/compressed-nft";
 
-let collectionMint = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
+let collMerkelTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
+let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
 let RPC = "https://rpc.helius.xyz/?api-key=d4654c49-78d9-49cf-9a9f-4d5b0c9074d9";
 describe('compressed nft', function () {
     it("get merkel tree data", async () => {
         const treeAccount = await ConcurrentMerkleTreeAccount.fromAccountAddress(
             env.connection("mainnet-beta"),
-            collectionMint,
+            collMerkelTree,
         );
         console.log(JSON.stringify(treeAccount));
     });
@@ -23,9 +22,22 @@ describe('compressed nft', function () {
 
     });
 
+    it("get asset by group", async () => {
+        let asset = await cNFT.getAssetsByGroup(collection, 1, 100, RPC);
+        console.log(JSON.stringify(asset));
+    })
+
+    it("create Compressed Tree", async () => {
+        let result = await cNFT.createCompressedTree({
+            maxDepth: 14,
+            maxBufferSize: 64,
+        }, 5);
+        console.log(JSON.stringify(result));
+    })
+
     it("get asset proof", async () => {
         let canopyDepth = 5;
-        let assetId = await getLeafAssetId(collectionMint, new BN.BN(207487));
+        let assetId = await cNFT.getAssertId(collMerkelTree, 207487);
         console.log(assetId.toBase58());
         let asset = await cNFT.getAsset(assetId, RPC);
         console.log(JSON.stringify(asset));

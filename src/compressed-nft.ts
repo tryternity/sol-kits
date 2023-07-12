@@ -1,20 +1,38 @@
 import axios from "axios";
-import {PublicKey} from "@solana/web3.js";
+import {Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
+import {
+    createAllocTreeIx,
+    SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+    SPL_NOOP_PROGRAM_ID,
+    ValidDepthSizePair
+} from "@solana/spl-account-compression";
+import {
+    createCreateTreeInstruction,
+    createMintToCollectionV1Instruction,
+    getLeafAssetId,
+    MetadataArgs,
+    PROGRAM_ID as BUBBLEGUM_PROGRAM_ID,
+} from '@metaplex-foundation/mpl-bubblegum';
+import {PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,} from '@metaplex-foundation/mpl-token-metadata';
+import {env} from "./env";
+import BN from "bn.js";
 
 export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-49cf-9a9f-4d5b0c9074d9";
 
-
 export module cNFT {
+    export async function getAssertId(tree: PublicKey | string, index: number | string): Promise<PublicKey> {
+        return await getLeafAssetId(toKey(tree), new BN.BN(index));
+    }
+
     export async function getAsset(assetId: string | PublicKey, rpcUrl = HELIUS_RPC): Promise<any> {
         return await post(rpcUrl, "getAsset", {
-            id: assetId instanceof PublicKey ? assetId : new PublicKey(assetId)
+            id: toKey(assetId)
         });
     }
 
-
     export async function getAssetProof(assetId: PublicKey | string, rpcUrl = HELIUS_RPC): Promise<any> {
         return await post(rpcUrl, "getAssetProof", {
-            id: assetId instanceof PublicKey ? assetId : new PublicKey(assetId)
+            id: toKey(assetId)
         });
     }
 
@@ -25,7 +43,7 @@ export module cNFT {
         rpcUrl = HELIUS_RPC
     ): Promise<any> {
         return await post(rpcUrl, "getAssetsByOwner", {
-            ownerAddress: wallet instanceof PublicKey ? wallet : new PublicKey(wallet),
+            ownerAddress: toKey(wallet),
             page: page ?? 1,
             limit: limit ?? 10
         });
@@ -37,11 +55,155 @@ export module cNFT {
                                            rpcUrl = HELIUS_RPC) {
         return await post(rpcUrl, "getAssetsByGroup", {
             groupKey: "collection",
-            groupValue: collection instanceof PublicKey ? collection : new PublicKey(collection),
+            groupValue: toKey(collection),
             page: page ?? 1,
             limit: limit ?? 10
         });
     }
+
+    export async function createCompressedTree(maxDepthSizePair: ValidDepthSizePair,
+                                               canopyDepth: number,
+                                               wallet: Keypair = env.wallet,
+                                               connection: Connection = env.defaultConnection): Promise<[PublicKey, string]> {
+        connection = connection ?? env.defaultConnection;
+        wallet = wallet ?? env.wallet;
+
+        let treeKeypair = Keypair.generate();
+        // derive the tree's authority (PDA), owned by Bubblegum
+        const [treeAuthority, _bump] = PublicKey.findProgramAddressSync(
+            [treeKeypair.publicKey.toBuffer()],
+            BUBBLEGUM_PROGRAM_ID,
+        );
+
+        // allocate the tree's account on chain with the `space`
+        const allocTreeIx = await createAllocTreeIx(
+            connection,
+            treeKeypair.publicKey,
+            wallet.publicKey,
+            maxDepthSizePair,
+            canopyDepth,
+        );
+
+        // create the instruction to actually create the tree
+        const createTreeIx = createCreateTreeInstruction(
+            {
+                payer: wallet.publicKey,
+                treeCreator: wallet.publicKey,
+                treeAuthority,
+                merkleTree: treeKeypair.publicKey,
+                compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+                // NOTE: this is used for some on chain logging
+                logWrapper: SPL_NOOP_PROGRAM_ID,
+            },
+            {
+                maxBufferSize: maxDepthSizePair.maxBufferSize,
+                maxDepth: maxDepthSizePair.maxDepth,
+                public: false,
+            },
+            BUBBLEGUM_PROGRAM_ID,
+        );
+
+        // build the transaction
+        const tx = new Transaction().add(allocTreeIx).add(createTreeIx);
+        tx.feePayer = wallet.publicKey;
+
+        // send the transaction
+        const txSignature = await sendAndConfirmTransaction(
+            connection, tx,
+            // ensuring the `treeKeypair` PDA and the `payer` are BOTH signers
+            [treeKeypair, wallet],
+            {
+                commitment: "confirmed",
+                skipPreflight: true,
+            },
+        );
+        return [treeKeypair.publicKey, txSignature]
+    }
+
+    export async function createCompressedNFT(
+        collection: PublicKey | string,
+        merkelTree: PublicKey | string,
+        metadata: MetadataArgs,
+        wallet: Keypair = env.wallet,
+        connection: Connection = env.defaultConnection
+    ) {
+        connection = connection ?? env.defaultConnection;
+        wallet = wallet ?? env.wallet;
+        let collectionMint = toKey(collection);
+        // derive a PDA (owned by Bubblegum) to act as the signer of the compressed minting
+        const [bubblegumSigner, _bump2] = PublicKey.findProgramAddressSync(
+            // `collection_cpi` is a custom prefix required by the Bubblegum program
+            [Buffer.from("collection_cpi", "utf8")],
+            BUBBLEGUM_PROGRAM_ID,
+        );
+
+        // derive the tree's authority (PDA), owned by Bubblegum
+        const [treeAuthority, _bump] = PublicKey.findProgramAddressSync(
+            [toKey(merkelTree).toBuffer()],
+            BUBBLEGUM_PROGRAM_ID,
+        );
+        const [collectionMetadataAccount, _b1] = PublicKey.findProgramAddressSync(
+            [
+                Buffer.from("metadata", "utf8"),
+                TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+                collectionMint.toBuffer(),
+            ],
+            TOKEN_METADATA_PROGRAM_ID
+        );
+        const [collectionEditionAccount, _b2] = PublicKey.findProgramAddressSync(
+            [
+                Buffer.from("metadata", "utf8"),
+                TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+                collectionMint.toBuffer(),
+                Buffer.from("edition", "utf8"),
+            ],
+            TOKEN_METADATA_PROGRAM_ID
+        );
+        const compressedMintIx = createMintToCollectionV1Instruction(
+            {
+                payer: wallet.publicKey,
+                merkleTree: toKey(merkelTree),
+                treeAuthority,
+                treeDelegate: wallet.publicKey,
+
+                // set the receiver of the NFT
+                leafOwner: wallet.publicKey,
+                // set a delegated authority over this NFT
+                leafDelegate: wallet.publicKey,
+
+                // collection details
+                collectionAuthority: wallet.publicKey,
+                collectionAuthorityRecordPda: BUBBLEGUM_PROGRAM_ID,
+                collectionMint: collectionMint,
+                collectionMetadata: collectionMetadataAccount,
+                editionAccount: collectionEditionAccount,
+
+                // other accounts
+                bubblegumSigner: bubblegumSigner,
+                compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+                logWrapper: SPL_NOOP_PROGRAM_ID,
+                tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+            },
+            {
+                metadataArgs: Object.assign(metadata, {
+                    collection: {key: collectionMint, verified: false},
+                }),
+            }
+        );
+        const tx = new Transaction().add(compressedMintIx);
+        tx.feePayer = wallet.publicKey;
+
+        // send the transaction to the cluster
+        const txSignature = await sendAndConfirmTransaction(connection, tx, [wallet], {
+            commitment: "confirmed",
+            skipPreflight: true,
+        });
+        return [txSignature];
+    }
+}
+
+function toKey(key: PublicKey | string): PublicKey {
+    return key instanceof PublicKey ? key : new PublicKey(key);
 }
 
 async function post(url: string, method: string, params: any) {
