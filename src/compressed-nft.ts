@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import axios from "axios";
 import {Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import {
@@ -16,8 +18,13 @@ import {
 import {PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,} from '@metaplex-foundation/mpl-token-metadata';
 import {env} from "./env";
 import BN from "bn.js";
+import {TokenStandard} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/types/TokenStandard";
+import {TokenProgramVersion} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/types/TokenProgramVersion";
+import {ePrint} from "./kits";
 
 export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-49cf-9a9f-4d5b0c9074d9";
+
+export const META_TEST_URL = "https://arweave.net/eoKQ-WzDWzZwajfJpz8btdHteONr4BrchTG1RdZ-wGg";
 
 export module cNFT {
     export async function getAssertId(tree: PublicKey | string, index: number | string): Promise<PublicKey> {
@@ -123,7 +130,20 @@ export module cNFT {
     export async function createCompressedNFT(
         collection: PublicKey | string,
         merkelTree: PublicKey | string,
-        metadata: MetadataArgs,
+        metadata: MetadataArgs = {
+            name: "ANY",
+            symbol: "ANY",
+            uri: META_TEST_URL,
+            sellerFeeBasisPoints: 200,
+            creators: [],
+            editionNonce: 0,
+            uses: null,
+            collection: null,
+            primarySaleHappened: false,
+            isMutable: false,
+            tokenProgramVersion: TokenProgramVersion.Original,
+            tokenStandard: TokenStandard.NonFungible,
+        },
         wallet: Keypair = env.wallet,
         connection: Connection = env.defaultConnection
     ) {
@@ -197,7 +217,7 @@ export module cNFT {
         const txSignature = await sendAndConfirmTransaction(connection, tx, [wallet], {
             commitment: "confirmed",
             skipPreflight: true,
-        });
+        }).catch(ePrint);
         return [txSignature];
     }
 }

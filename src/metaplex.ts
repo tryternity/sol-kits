@@ -1,6 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import {
+    BigNumber,
     CreateCompressedNftOutput,
     CreateNftInput,
     keypairIdentity,
@@ -12,6 +13,7 @@ import {env} from "./env";
 import {Connection, PublicKey} from "@solana/web3.js";
 import {tx} from "./transaction";
 import {account, Address} from "./account";
+import BN from "bn.js";
 
 export module mxKit {
 
@@ -35,17 +37,11 @@ export module mxKit {
         return mx;
     };
 
-    export async function createNFT(tokenOwner: Address, options?: {
-        uri?: string,
-        name?: string,
-        sellerFeeBasisPoints?: number,
-    } & CreateNftInput): Promise<CreateCompressedNftOutput> {
+    export async function createNFT(tokenOwner: Address, options: CreateNftInput): Promise<CreateCompressedNftOutput> {
         let mx: Metaplex = metaplex();
         let out = await mx.nfts().create({
-            uri: options?.uri ?? "https://collection.mooar.com/token/solana/ad7149197b1740c7a16cfd6e4a6caaee/81",
-            name: options?.name ?? 'My NFT',
-            sellerFeeBasisPoints: options?.sellerFeeBasisPoints ?? 200,
-            tokenOwner: account.toPubicKey(tokenOwner),
+            tokenOwner: options.tokenOwner ?? account.toPubicKey(tokenOwner),
+            maxSupply: options.maxSupply ?? new BN(0) as BigNumber,
             ...options,
         }).catch(ePrint);
         let signature = out.response.signature;

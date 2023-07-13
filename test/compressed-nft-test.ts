@@ -1,7 +1,8 @@
 import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
-import {env} from "../dist";
+import {env, mxKit} from "../dist";
 import {AccountMeta, PublicKey} from "@solana/web3.js";
 import {cNFT} from "../src/compressed-nft";
+import {META_TEST_URL} from "../dist/compressed-nft";
 
 let collMerkelTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
 let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
@@ -28,11 +29,18 @@ describe('compressed nft', function () {
     })
 
     it("create Compressed Tree", async () => {
-        let result = await cNFT.createCompressedTree({
+        let out = await mxKit.createNFT(env.wallet, {
+            name: "TTT", sellerFeeBasisPoints: 200, uri: META_TEST_URL,
+            isCollection: true,
+            collectionIsSized: true
+        });
+        let tree = await cNFT.createCompressedTree({
             maxDepth: 14,
             maxBufferSize: 64,
         }, 5);
-        console.log(JSON.stringify(result));
+        console.log(JSON.stringify(tree));
+        let nft = await cNFT.createCompressedNFT(out.nft.address, tree[0]);
+        console.log(JSON.stringify(nft));
     })
 
     it("get asset proof", async () => {
