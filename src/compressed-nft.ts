@@ -1,8 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import axios from "axios";
-import {Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
+import {AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
 import {
+    ConcurrentMerkleTree,
+    ConcurrentMerkleTreeAccount,
     createAllocTreeIx,
     SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
     SPL_NOOP_PROGRAM_ID,
@@ -11,6 +13,7 @@ import {
 import {
     createCreateTreeInstruction,
     createMintToCollectionV1Instruction,
+    createTransferInstruction,
     getLeafAssetId,
     MetadataArgs,
     PROGRAM_ID as BUBBLEGUM_PROGRAM_ID,
@@ -27,7 +30,7 @@ export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-
 export const META_TEST_URL = "https://arweave.net/eoKQ-WzDWzZwajfJpz8btdHteONr4BrchTG1RdZ-wGg";
 
 export module cNFT {
-    export async function getAssertId(tree: PublicKey | string, index: number | string): Promise<PublicKey> {
+    export async function getAssertId(tree: PublicKey | string, index: number): Promise<PublicKey> {
         return await getLeafAssetId(toKey(tree), new BN.BN(index));
     }
 
@@ -71,7 +74,7 @@ export module cNFT {
     export async function createCompressedTree(maxDepthSizePair: ValidDepthSizePair,
                                                canopyDepth: number,
                                                wallet: Keypair = env.wallet,
-                                               connection: Connection = env.defaultConnection): Promise<[PublicKey, string]> {
+                                               connection: Connection = env.defaultConnection) {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
 
@@ -124,7 +127,7 @@ export module cNFT {
                 skipPreflight: true,
             },
         );
-        return [treeKeypair.publicKey, txSignature]
+        return {signature: txSignature, treeKey: treeKeypair.publicKey}
     }
 
     export async function createCompressedNFT(
@@ -150,7 +153,8 @@ export module cNFT {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
         let collectionMint = toKey(collection);
-        // derive a PDA (owned by Bubblegum) to act as the signer of the compressed minting
+        let treeKey = toKey(merkelTree);
+        // derive a PDA (owned by Bubblegum) to act as the (signer) of the compressed minting
         const [bubblegumSigner, _bump2] = PublicKey.findProgramAddressSync(
             // `collection_cpi` is a custom prefix required by the Bubblegum program
             [Buffer.from("collection_cpi", "utf8")],
@@ -158,10 +162,7 @@ export module cNFT {
         );
 
         // derive the tree's authority (PDA), owned by Bubblegum
-        const [treeAuthority, _bump] = PublicKey.findProgramAddressSync(
-            [toKey(merkelTree).toBuffer()],
-            BUBBLEGUM_PROGRAM_ID,
-        );
+        const [treeAuthority, _bump] = PublicKey.findProgramAddressSync([treeKey.toBuffer()], BUBBLEGUM_PROGRAM_ID);
         const [collectionMetadataAccount, _b1] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("metadata", "utf8"),
@@ -182,7 +183,7 @@ export module cNFT {
         const compressedMintIx = createMintToCollectionV1Instruction(
             {
                 payer: wallet.publicKey,
-                merkleTree: toKey(merkelTree),
+                merkleTree: treeKey,
                 treeAuthority,
                 treeDelegate: wallet.publicKey,
 
@@ -214,11 +215,81 @@ export module cNFT {
         tx.feePayer = wallet.publicKey;
 
         // send the transaction to the cluster
-        const txSignature = await sendAndConfirmTransaction(connection, tx, [wallet], {
+        let txSignature = await sendAndConfirmTransaction(connection, tx, [wallet], {
             commitment: "confirmed",
             skipPreflight: true,
         }).catch(ePrint);
-        return [txSignature];
+        let treeAccount: ConcurrentMerkleTree = (await ConcurrentMerkleTreeAccount.fromAccountAddress(connection, treeKey).catch(ePrint)).tree;
+        treeAccount.changeLogs = [];
+        return {
+            "signature": txSignature,
+            "sequenceNumber": treeAccount.sequenceNumber,
+            "activeIndex": treeAccount.activeIndex,
+            "bufferSize": treeAccount.bufferSize,
+            "rightMostPath": treeAccount.rightMostPath
+        }
+    }
+
+    export async function transferCompressedNFT(
+        merkelTree: PublicKey | string,
+        assetId: PublicKey | string | number,
+        to: PublicKey | string,
+        wallet: Keypair = env.wallet,
+        connection: Connection = env.defaultConnection
+    ) {
+        connection = connection ?? env.defaultConnection;
+        wallet = wallet ?? env.wallet;
+        let treeKey = toKey(merkelTree);
+        // retrieve the merkle tree's account from the blockchain
+        const treeAccount = await ConcurrentMerkleTreeAccount.fromAccountAddress(connection, treeKey);
+
+        // extract the needed values for our transfer instruction
+        const treeAuthority = treeAccount.getAuthority();
+        const canopyDepth = treeAccount.getCanopyDepth();
+        assetId = typeof assetId == 'number' ? await getAssertId(treeKey, assetId) : toKey(assetId);
+        console.log("treeAuthority:", treeAuthority.toBase58(), "canopyDepth:", canopyDepth, "assetId:", assetId.toBase58())
+        let asset = await getAsset(assetId);
+        let assetProof = await getAssetProof(assetId)
+        // parse the list of proof addresses into a valid AccountMeta[]
+        const proof: AccountMeta[] = assetProof.proof
+            .slice(0, assetProof.proof.length - (!!canopyDepth ? canopyDepth : 0))
+            .map((node: string) => ({
+                pubkey: new PublicKey(node),
+                isSigner: false,
+                isWritable: false,
+            }));
+        console.log(JSON.stringify(proof))
+
+        // create the NFT transfer instruction (via the Bubblegum package)
+        const transferIx = createTransferInstruction(
+            {
+                merkleTree: treeKey,
+                treeAuthority,
+                leafOwner: wallet.publicKey,
+                leafDelegate: wallet.publicKey,
+                newLeafOwner: toKey(to),
+                logWrapper: SPL_NOOP_PROGRAM_ID,
+                compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+                anchorRemainingAccounts: proof,
+            },
+            {
+                root: [...new PublicKey(assetProof.root.trim()).toBytes()],
+                dataHash: [...new PublicKey(asset.compression.data_hash.trim()).toBytes()],
+                creatorHash: [
+                    ...new PublicKey(asset.compression.creator_hash.trim()).toBytes(),
+                ],
+                nonce: asset.compression.leaf_id,
+                index: asset.compression.leaf_id,
+            },
+            BUBBLEGUM_PROGRAM_ID,
+        );
+        // send the transaction to the cluster
+        const tx = new Transaction().add(transferIx);
+        tx.feePayer = wallet.publicKey;
+        return await sendAndConfirmTransaction(env.defaultConnection, tx, [wallet], {
+            commitment: "confirmed",
+            skipPreflight: true,
+        });
     }
 }
 

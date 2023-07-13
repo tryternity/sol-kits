@@ -28,7 +28,7 @@ describe('compressed nft', function () {
         console.log(JSON.stringify(asset));
     })
 
-    it("create Compressed Tree", async () => {
+    it("create&transfer Compressed Tree", async () => {
         let out = await mxKit.createNFT(env.wallet, {
             name: "TTT", sellerFeeBasisPoints: 200, uri: META_TEST_URL,
             isCollection: true,
@@ -39,8 +39,11 @@ describe('compressed nft', function () {
             maxBufferSize: 64,
         }, 5);
         console.log(JSON.stringify(tree));
-        let nft = await cNFT.createCompressedNFT(out.nft.address, tree[0]);
-        console.log(JSON.stringify(nft));
+        let create = await cNFT.createCompressedNFT(out.nft.address, tree.treeKey);
+        console.log(JSON.stringify(create));
+
+        let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
+        console.log(JSON.stringify(transfer));
     })
 
     it("get asset proof", async () => {
