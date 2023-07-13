@@ -52,4 +52,31 @@ export module kits {
         const os = require("os");
         return os.homedir();
     }
+
+    export async function post(url: string, body: any): Promise<String> {
+        let response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(body)
+        }).catch(ePrint);
+        return await text(response);
+    }
+
+    export async function text(response: Response): Promise<String> {
+        if (response.body == null) {
+            return "<null>";
+        }
+        const chunks: Array<any> = [];
+        let reader = response.body.getReader();
+        while (true) {
+            let buff = await reader.read()
+            if (!buff || !buff.value) {
+                break
+            }
+            chunks.push(buff.value);
+        }
+        return Buffer.concat(chunks).toString("utf-8")
+    }
 }

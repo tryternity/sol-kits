@@ -258,7 +258,6 @@ export module cNFT {
                 isSigner: false,
                 isWritable: false,
             }));
-        console.log(JSON.stringify(proof))
 
         // create the NFT transfer instruction (via the Bubblegum package)
         const transferIx = createTransferInstruction(
@@ -307,7 +306,7 @@ async function post(url: string, method: string, params: any) {
             id: "rpd-op-123",
             method,
             params: params,
-        });
+        }).catch(ePrint);
         return response.data.result;
     } catch (error) {
         console.error(error);

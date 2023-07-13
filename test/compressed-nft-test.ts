@@ -42,6 +42,9 @@ describe('compressed nft', function () {
         let create = await cNFT.createCompressedNFT(out.nft.address, tree.treeKey);
         console.log(JSON.stringify(create));
 
+        let create2 = await cNFT.createCompressedNFT(out.nft.address, tree.treeKey);
+        console.log(JSON.stringify(create2));
+
         let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
         console.log(JSON.stringify(transfer));
     })
