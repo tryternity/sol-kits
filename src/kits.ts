@@ -79,4 +79,8 @@ export module kits {
         }
         return Buffer.concat(chunks).toString("utf-8")
     }
+
+    export function base64ToUint8Array(str: string): Uint8Array {
+        return Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
+    }
 }

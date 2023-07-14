@@ -1,7 +1,8 @@
-import {env, mxKit} from "../dist";
+import {env, kits, mxKit} from "../dist";
 import {AccountMeta, PublicKey} from "@solana/web3.js";
-import {cNFT} from "../src/compressed-nft";
-import {META_TEST_URL} from "../dist/compressed-nft";
+import {cNFT, META_TEST_URL} from "../dist/compressed-nft";
+import * as fs from "fs";
+import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
 
 let merkelTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
 let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
@@ -11,6 +12,13 @@ describe('compressed nft', function () {
         let tree = await cNFT.treeAccount(merkelTree, env.connection("mainnet-beta"));
         console.log(JSON.stringify(tree));
     });
+
+    it("Merge merkel tree account data", async () => {
+        let data = fs.readFileSync("./test/account-data.txt", "utf-8");
+        let buff = kits.base64ToUint8Array(data);
+        let text = ConcurrentMerkleTreeAccount.fromBuffer(new Buffer(buff))
+        console.log(text);
+    })
 
     it("get asset metadata", async () => {
         let assetId = "26HEsktiRbtUsfykurTNh2so1qnyffxCXLJswqATNBf6";
