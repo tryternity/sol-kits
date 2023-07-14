@@ -16,8 +16,10 @@ describe('compressed nft', function () {
     it("Merge merkel tree account data", async () => {
         let data = fs.readFileSync("./test/account-data.txt", "utf-8");
         let buff = kits.base64ToUint8Array(data);
-        let text = ConcurrentMerkleTreeAccount.fromBuffer(new Buffer(buff))
-        console.log(text);
+        let account = ConcurrentMerkleTreeAccount.fromBuffer(new Buffer(buff))
+
+        console.log("===========")
+        console.log(kits.toJson(account));
     })
 
     it("get asset metadata", async () => {
