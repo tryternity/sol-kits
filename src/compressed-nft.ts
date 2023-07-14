@@ -30,6 +30,13 @@ export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-
 export const META_TEST_URL = "https://arweave.net/eoKQ-WzDWzZwajfJpz8btdHteONr4BrchTG1RdZ-wGg";
 
 export module cNFT {
+    export async function treeAccount(tree: string | PublicKey, connection: Connection): Promise<ConcurrentMerkleTreeAccount> {
+        return await ConcurrentMerkleTreeAccount.fromAccountAddress(
+            connection ?? env.defaultConnection,
+            toKey(tree),
+        );
+    }
+
     export async function getAssertId(tree: PublicKey | string, index: number): Promise<PublicKey> {
         return await getLeafAssetId(toKey(tree), new BN.BN(index));
     }
