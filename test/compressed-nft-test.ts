@@ -8,6 +8,14 @@ let merkelTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
 let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
 let RPC = "https://rpc.helius.xyz/?api-key=d4654c49-78d9-49cf-9a9f-4d5b0c9074d9";
 describe('compressed nft', function () {
+    it("getAssertId", async () => {
+        let assetId1 = await cNFT.getAssertId(merkelTree, 1);
+        console.log(assetId1.toBase58());
+
+        let assetId2 = await cNFT.getAssertId(merkelTree, 207487);
+        console.log(assetId2.toBase58());
+    })
+
     it("get merkel tree data", async () => {
         let tree = await cNFT.treeAccount(merkelTree, env.connection("mainnet-beta"));
         console.log(JSON.stringify(tree));
