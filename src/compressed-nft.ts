@@ -1,7 +1,15 @@
 // noinspection JSUnusedGlobalSymbols
 
 import axios from "axios";
-import {AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction} from "@solana/web3.js";
+import {
+    AccountMeta,
+    Connection,
+    Keypair,
+    PublicKey,
+    sendAndConfirmTransaction,
+    SystemProgram,
+    Transaction
+} from "@solana/web3.js";
 import {
     ConcurrentMerkleTree,
     ConcurrentMerkleTreeAccount,
@@ -14,6 +22,7 @@ import {
     createCreateTreeInstruction,
     createMintToCollectionV1Instruction,
     createTransferInstruction,
+    createUnverifyCreatorInstruction,
     getLeafAssetId,
     MetadataArgs,
     PROGRAM_ID as BUBBLEGUM_PROGRAM_ID,
@@ -45,6 +54,11 @@ export module cNFT {
         return await post(rpcUrl, "getAsset", {
             id: toKey(assetId)
         });
+    }
+
+    export async function getAssetByNonce(merkleTree: PublicKey | string, nonce: number, rpcUrl = HELIUS_RPC): Promise<any> {
+        let assetId = await getAssertId(merkleTree, nonce);
+        return await getAsset(assetId, rpcUrl);
     }
 
     export async function getAssetProof(assetId: PublicKey | string, rpcUrl = HELIUS_RPC): Promise<any> {
@@ -237,12 +251,70 @@ export module cNFT {
         }
     }
 
+    export async function unverified(merkelTree: PublicKey | string,
+                                     nonce: number,
+                                     wallet: Keypair = env.wallet,
+                                     connection: Connection = env.defaultConnection,
+                                     rpcUrl = HELIUS_RPC) {
+        connection = connection ?? env.defaultConnection;
+        wallet = wallet ?? env.wallet;
+        // let collectionMint = toKey(collection);
+        let treeKey = toKey(merkelTree);
+        const [treeAuthority, _bump] = PublicKey.findProgramAddressSync([treeKey.toBuffer()], BUBBLEGUM_PROGRAM_ID);
+
+        let assetId = await getAssertId(treeKey, nonce);
+        let asset = await getAsset(assetId, rpcUrl);
+        let assetProof = await getAssetProof(assetId, rpcUrl)
+        let message = {
+            name: asset.name,
+            symbol: asset.symbol,
+            uri: asset.uri,
+            sellerFeeBasisPoints: asset.sellerFeeBasisPoints,
+            primarySaleHappened: asset.primarySaleHappened,
+            isMutable: asset.isMutable,
+            tokenStandard: asset.tokenStandard,
+            tokenProgramVersion: asset.tokenProgramVersion,
+            editionNonce: null,
+            collection: null,
+            uses: asset.uses,
+            creators: asset.creators
+        } as MetadataArgs;
+        let ix = createUnverifyCreatorInstruction({
+            creator: asset.creator,
+            leafDelegate: asset.leafDelegate,
+            leafOwner: asset.leafOwner,
+            merkleTree: treeKey,
+            payer: wallet.publicKey,
+            treeAuthority,
+            logWrapper: SPL_NOOP_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
+            anchorRemainingAccounts: [],
+        }, {
+            root: [...new PublicKey(assetProof.root.trim()).toBytes()],
+            dataHash: [...new PublicKey(asset.compression.data_hash.trim()).toBytes()],
+            creatorHash: [
+                ...new PublicKey(asset.compression.creator_hash.trim()).toBytes(),
+            ],
+            nonce: asset.compression.leaf_id,
+            index: asset.compression.leaf_id,
+            message,
+        });
+        const tx = new Transaction().add(ix);
+        tx.feePayer = wallet.publicKey;
+        return await sendAndConfirmTransaction(connection, tx, [wallet], {
+            commitment: "confirmed",
+            skipPreflight: true,
+        });
+    }
+
     export async function transferCompressedNFT(
         merkelTree: PublicKey | string,
         assetId: PublicKey | string | number,
         to: PublicKey | string,
         wallet: Keypair = env.wallet,
-        connection: Connection = env.defaultConnection
+        connection: Connection = env.defaultConnection,
+        rpcUrl = HELIUS_RPC
     ) {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
@@ -255,8 +327,8 @@ export module cNFT {
         const canopyDepth = treeAccount.getCanopyDepth();
         assetId = typeof assetId == 'number' ? await getAssertId(treeKey, assetId) : toKey(assetId);
         console.log("treeAuthority:", treeAuthority.toBase58(), "canopyDepth:", canopyDepth, "assetId:", assetId.toBase58())
-        let asset = await getAsset(assetId);
-        let assetProof = await getAssetProof(assetId)
+        let asset = await getAsset(assetId, rpcUrl);
+        let assetProof = await getAssetProof(assetId, rpcUrl)
         // parse the list of proof addresses into a valid AccountMeta[]
         const proof: AccountMeta[] = assetProof.proof
             .slice(0, assetProof.proof.length - (!!canopyDepth ? canopyDepth : 0))

@@ -3,6 +3,9 @@ import {AccountMeta, PublicKey} from "@solana/web3.js";
 import {cNFT, META_TEST_URL} from "../dist/compressed-nft";
 import * as fs from "fs";
 import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
+import {
+    createUnverifyCreatorInstruction
+} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/instructions/unverifyCreator";
 
 let merkelTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
 let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
@@ -14,6 +17,11 @@ describe('compressed nft', function () {
 
         let assetId2 = await cNFT.getAssertId(merkelTree, 207487);
         console.log(assetId2.toBase58());
+    })
+
+    it("getAssetByNonce", async () => {
+        let meta = await cNFT.getAssetByNonce(merkelTree, 1, RPC);
+        console.log(JSON.stringify(meta));
     })
 
     it("get merkel tree data", async () => {
@@ -52,15 +60,20 @@ describe('compressed nft', function () {
             maxDepth: 14,
             maxBufferSize: 64,
         }, 5);
-        console.log(JSON.stringify(tree));
+        // console.log(JSON.stringify(tree));
         let create = await cNFT.createCompressedNFT(out.nft.address, tree.treeKey);
-        console.log(JSON.stringify(create));
+        // console.log("NFT1", JSON.stringify(create));
+        let meta1 = await cNFT.getAssetByNonce(tree.treeKey, 0);
+        console.log(JSON.stringify(meta1));
 
         let create2 = await cNFT.createCompressedNFT(out.nft.address, tree.treeKey);
-        console.log(JSON.stringify(create2));
+        // console.log("NFT2", JSON.stringify(create2));
+        let meta2 = await cNFT.getAssetByNonce(tree.treeKey, 1);
+        console.log(JSON.stringify(meta2));
 
-        let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
-        console.log(JSON.stringify(transfer));
+
+        // let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
+        // console.log(JSON.stringify(transfer));
     })
 
     it("get asset proof", async () => {

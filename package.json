@@ -25,10 +25,12 @@
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.1",
+    "@types/bs58": "^4.0.1",
     "@types/mocha": "^9.1.1",
+    "@types/node-fetch": "^2.6.4",
     "amqplib": "^0.10.3",
-    "generic-pool": "^3.9.0",
     "chai": "^4.3.6",
+    "generic-pool": "^3.9.0",
     "mocha": "^10.0.0",
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.1",
