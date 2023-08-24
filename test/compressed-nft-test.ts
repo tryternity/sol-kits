@@ -72,8 +72,8 @@ describe('compressed nft', function () {
         console.log(JSON.stringify(meta2));
 
 
-        // let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
-        // console.log(JSON.stringify(transfer));
+        let transfer = await cNFT.transferCompressedNFT(tree.treeKey, 0, "DxNoG8jDPPhYtgxCJM8xjjm2UBZYdu44T1sfCvxjTiNa");
+        console.log(JSON.stringify(transfer));
     })
 
     it("get asset proof", async () => {

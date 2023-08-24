@@ -2,7 +2,16 @@
 
 import * as anchor from "@project-serum/anchor";
 import {web3} from "@project-serum/anchor";
-import {Connection, Keypair, PublicKey, Transaction} from "@solana/web3.js";
+import {
+    AddressLookupTableAccount,
+    Connection,
+    Keypair,
+    PublicKey,
+    Transaction,
+    TransactionInstruction,
+    TransactionMessage,
+    VersionedTransaction
+} from "@solana/web3.js";
 import {ePrint} from "./kits";
 import * as token from "@solana/spl-token";
 import {getMint, getOrCreateAssociatedTokenAccount} from "@solana/spl-token";
@@ -10,6 +19,8 @@ import {account, Address} from "./account";
 import {env} from "./env";
 
 export module tx {
+
+
     export function additionalComputeBudget(units: number = 400000): anchor.web3.TransactionInstruction[] {
         return [anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
             units: units
@@ -117,5 +128,46 @@ export module tx {
             let toAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, options.mint, account.toPubicKey(to))).address;
             return await token.transfer(conn, payer, fromAccount, toAccount, payer.publicKey, amount * Math.pow(10, mint.decimals)).catch(ePrint);
         }
+    }
+
+    export async function createAndSendV0Tx(instructions: TransactionInstruction[], txName?: string) {
+        const connection = env.defaultConnection;
+        let latestBlockhash = await connection.getLatestBlockhash('finalized');
+
+        const messageV0 = new TransactionMessage({
+            payerKey: env.wallet.publicKey,
+            recentBlockhash: latestBlockhash.blockhash,
+            instructions
+        }).compileToV0Message();
+        const transaction = new VersionedTransaction(messageV0);
+        transaction.sign([env.wallet]);
+        const signature = await connection.sendTransaction(transaction, {maxRetries: 5, skipPreflight: true});
+        await connection.confirmTransaction({
+            signature: signature,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        });
+        console.log("createAndSendV0Tx[", txName ?? "tx", "] signature:", signature);
+    }
+
+    export async function createLookupTable(addresses: PublicKey[]): Promise<[PublicKey, AddressLookupTableAccount | null]> {
+        const slot = await env.defaultConnection.getSlot();
+        const [lookupInst, lookupAddress] =
+            web3.AddressLookupTableProgram.createLookupTable({
+                authority: env.wallet.publicKey,
+                payer: env.wallet.publicKey,
+                recentSlot: slot,
+            });
+        const extendTx = web3.AddressLookupTableProgram.extendLookupTable({
+            payer: env.wallet.publicKey,
+            authority: env.wallet.publicKey,
+            lookupTable: lookupAddress,
+            addresses
+        });
+        await createAndSendV0Tx([lookupInst, extendTx], "createLookupTable");
+        const lookupTableAccount = await env.defaultConnection.getAddressLookupTable(lookupAddress)
+            .then((res) => res.value);
+        console.log("lookupTableAddress:", lookupAddress.toBase58(), "lookupTableAccount:", lookupTableAccount?.key.toBase58());
+        return [lookupAddress, lookupTableAccount];
     }
 }
