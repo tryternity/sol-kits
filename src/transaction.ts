@@ -7,6 +7,7 @@ import {
     Connection,
     Keypair,
     PublicKey,
+    Signer,
     Transaction,
     TransactionInstruction,
     TransactionMessage,
@@ -19,8 +20,6 @@ import {account, Address} from "./account";
 import {env} from "./env";
 
 export module tx {
-
-
     export function additionalComputeBudget(units: number = 400000): anchor.web3.TransactionInstruction[] {
         return [anchor.web3.ComputeBudgetProgram.setComputeUnitLimit({
             units: units
@@ -130,24 +129,25 @@ export module tx {
         }
     }
 
-    export async function createAndSendV0Tx(instructions: TransactionInstruction[], txName?: string) {
+    export async function createAndSendV0Tx(instructions: TransactionInstruction[], signer?: Signer[],
+                                            lookupTableAccount?: AddressLookupTableAccount): Promise<string> {
         const connection = env.defaultConnection;
         let latestBlockhash = await connection.getLatestBlockhash('finalized');
 
         const messageV0 = new TransactionMessage({
-            payerKey: env.wallet.publicKey,
+            payerKey: signer ? signer[0].publicKey : env.wallet.publicKey,
             recentBlockhash: latestBlockhash.blockhash,
             instructions
-        }).compileToV0Message();
+        }).compileToV0Message(lookupTableAccount ? [lookupTableAccount] : undefined);
         const transaction = new VersionedTransaction(messageV0);
-        transaction.sign([env.wallet]);
+        transaction.sign(signer ?? [env.wallet]);
         const signature = await connection.sendTransaction(transaction, {maxRetries: 5, skipPreflight: true});
         await connection.confirmTransaction({
             signature: signature,
             blockhash: latestBlockhash.blockhash,
             lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
         });
-        console.log("createAndSendV0Tx[", txName ?? "tx", "] signature:", signature);
+        return signature;
     }
 
     export async function createLookupTable(addresses: PublicKey[]): Promise<[PublicKey, AddressLookupTableAccount | null]> {
@@ -164,10 +164,10 @@ export module tx {
             lookupTable: lookupAddress,
             addresses
         });
-        await createAndSendV0Tx([lookupInst, extendTx], "createLookupTable");
+        let signature = await createAndSendV0Tx([lookupInst, extendTx]);
         const lookupTableAccount = await env.defaultConnection.getAddressLookupTable(lookupAddress)
             .then((res) => res.value);
-        console.log("lookupTableAddress:", lookupAddress.toBase58(), "lookupTableAccount:", lookupTableAccount?.key.toBase58());
+        console.log("signature:", signature, "lookupTableAddress:", lookupAddress.toBase58(), "lookupTableAccount:", lookupTableAccount?.key.toBase58());
         return [lookupAddress, lookupTableAccount];
     }
 }
