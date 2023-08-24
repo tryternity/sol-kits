@@ -83,4 +83,12 @@ export module kits {
     export function base64ToUint8Array(str: string): Uint8Array {
         return Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
     }
+
+    export function generate(size: number, generator: (index: number) => any): Array<any> {
+        let result = [];
+        for (let i = 0; i < size; i++) {
+            result.push(generator(i));
+        }
+        return result;
+    }
 }

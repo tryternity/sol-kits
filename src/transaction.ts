@@ -70,8 +70,13 @@ export module tx {
         let amount = options?.amount ?? 1;
         let userKey = account.toPubicKey(user);
         if (options?.mint == undefined) {
+            let latestBlockhash = await connection.getLatestBlockhash('finalized');
             const signature = await connection.requestAirdrop(userKey, web3.LAMPORTS_PER_SOL * amount).catch(ePrint);
-            await connection.confirmTransaction(signature).catch(ePrint);
+            await connection.confirmTransaction({
+                signature: signature,
+                blockhash: latestBlockhash.blockhash,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            }).catch(ePrint);
             await connection.getBalance(userKey, {commitment: "confirmed"}).catch(ePrint);
             return signature;
         } else {
@@ -129,8 +134,8 @@ export module tx {
         }
     }
 
-    export async function createAndSendV0Tx(instructions: TransactionInstruction[], signer?: Signer[],
-                                            lookupTableAccount?: AddressLookupTableAccount): Promise<string> {
+    export async function createAndSendV0Tx1(instructions: TransactionInstruction[], signer?: Signer[],
+                                             lookupTableAccount?: AddressLookupTableAccount): Promise<string> {
         const connection = env.defaultConnection;
         let latestBlockhash = await connection.getLatestBlockhash('finalized');
 
@@ -150,7 +155,17 @@ export module tx {
         return signature;
     }
 
-    export async function createLookupTable(addresses: PublicKey[]): Promise<[PublicKey, AddressLookupTableAccount | null]> {
+    export async function createAndSendV0Tx2(instructions: TransactionInstruction[], signer?: Signer[],
+                                             lookupTableAddress?: (PublicKey | string)[]): Promise<string> {
+        let lookupTableAccount: AddressLookupTableAccount | null = null;
+        if (lookupTableAddress) {
+            let [_, table] = await createLookupTable(lookupTableAddress);
+            lookupTableAccount = table;
+        }
+        return await createAndSendV0Tx1(instructions, signer, lookupTableAccount == null ? undefined : lookupTableAccount);
+    }
+
+    export async function createLookupTable(addresses: (PublicKey | string)[]): Promise<[PublicKey, AddressLookupTableAccount | null]> {
         const slot = await env.defaultConnection.getSlot();
         const [lookupInst, lookupAddress] =
             web3.AddressLookupTableProgram.createLookupTable({
@@ -158,13 +173,16 @@ export module tx {
                 payer: env.wallet.publicKey,
                 recentSlot: slot,
             });
+        let addresses2 = addresses.map((address) => {
+            return address instanceof PublicKey ? address : new PublicKey(address);
+        })
         const extendTx = web3.AddressLookupTableProgram.extendLookupTable({
             payer: env.wallet.publicKey,
             authority: env.wallet.publicKey,
             lookupTable: lookupAddress,
-            addresses
+            addresses: addresses2
         });
-        let signature = await createAndSendV0Tx([lookupInst, extendTx]);
+        let signature = await createAndSendV0Tx1([lookupInst, extendTx]);
         const lookupTableAccount = await env.defaultConnection.getAddressLookupTable(lookupAddress)
             .then((res) => res.value);
         console.log("signature:", signature, "lookupTableAddress:", lookupAddress.toBase58(), "lookupTableAccount:", lookupTableAccount?.key.toBase58());
