@@ -3,7 +3,9 @@
 import {
   BigNumber,
   CreateCompressedNftOutput,
-  CreateNftInput, CreateSftInput, CreateSftOutput,
+  CreateNftInput,
+  CreateSftInput,
+  CreateSftOutput,
   keypairIdentity,
   Metaplex,
   mockStorage,
@@ -11,11 +13,18 @@ import {
 } from '@metaplex-foundation/js';
 import {ePrint} from "./kits";
 import {env} from "./env";
-import {Connection, Keypair, PublicKey} from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  TransactionMessage,
+  VersionedTransaction
+} from "@solana/web3.js";
 import {tx} from "./transaction";
 import {account, Address} from "./account";
 import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
+import {createBurnCheckedInstruction} from "@solana/spl-token";
 
 export module mxKit {
 
@@ -102,6 +111,29 @@ export module mxKit {
     return output.response.signature
   }
 
+  export async function burnSft(mint: Address, ata: PublicKey | string, options?: {
+    amount?: number,
+    authority?: Keypair,
+  }) {
+    const burnIx = createBurnCheckedInstruction(
+        toPubicKey(ata), // PublicKey of Owner's Associated Token Account
+        toPubicKey(mint), // Public Key of the Token Mint Address
+        toPubicKey(options?.authority ?? env.wallet), // Public Key of Owner's Wallet
+        options?.amount ?? 1, // Number of tokens to burn
+        0 // Number of Decimals of the Token Mint
+    );
+    let latestBlockhash = await env.defaultConnection.getLatestBlockhash('finalized');
+    const messageV0 = new TransactionMessage({
+      payerKey: toPubicKey(options?.authority ?? env.wallet),
+      recentBlockhash: latestBlockhash.blockhash,
+      instructions: [burnIx]
+    }).compileToV0Message();
+    const transaction = new VersionedTransaction(messageV0);
+    transaction.sign([options?.authority ?? env.wallet])
+    const signature = await env.defaultConnection.sendTransaction(transaction).catch(ePrint);
+    await confirmTransaction(env.defaultConnection, signature);
+    return signature;
+  }
 
   /**
    * 创建一个普通的mint token当作nft进行测试
