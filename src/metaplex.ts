@@ -18,10 +18,10 @@ import {
   Keypair,
   PublicKey,
 } from "@solana/web3.js";
-import {tx} from "./transaction";
 import {account, Address} from "./account";
 import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
+import {tokenX} from "./token-x";
 
 export module mxKit {
 
@@ -115,8 +115,8 @@ export module mxKit {
    * @return [mint, ata]
    */
   export async function simulateCreateNft(tokenOwner: Address): Promise<[PublicKey, PublicKey]> {
-    let mint = await tx.createMint();
-    await tx.airDrop(tokenOwner, {amount: 1, mint});
+    let mint = await tokenX.create();
+    await tokenX.airDrop(tokenOwner, {amount: 1, mint});
     return [mint, await account.ata(tokenOwner, mint)];
   }
 

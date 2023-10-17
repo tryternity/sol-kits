@@ -13,7 +13,7 @@ describe("metaplex test", () => {
   })
 
   it("create pNFT", async () => {
-    let metaplex: Metaplex = await mxKit.metaplex();
+    let metaplex: Metaplex = mxKit.metaplex();
     let out = await metaplex.nfts().create({
       uri: "https://collection.mooar.com/token/solana/ad7149197b1740c7a16cfd6e4a6caaee/81",
       name: 'NFTC',
