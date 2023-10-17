@@ -24,6 +24,7 @@ import {tx} from "./transaction";
 import {account, Address} from "./account";
 import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
+import * as token from "@solana/spl-token";
 import {createBurnCheckedInstruction} from "@solana/spl-token";
 
 export module mxKit {
@@ -111,20 +112,20 @@ export module mxKit {
     return output.response.signature
   }
 
-  export async function burnSft(mint: Address, ata: PublicKey | string, options?: {
+  export async function burnSft(mint: Address, options?: {
     amount?: number,
+    owner?: PublicKey | string
     authority?: Keypair,
   }) {
+    let authority = toPubicKey(options?.authority ?? env.wallet);
+    let owner = toPubicKey(options?.owner ?? authority);
+    let ata = token.getAssociatedTokenAddressSync(toPubicKey(mint), owner);
     const burnIx = createBurnCheckedInstruction(
-        toPubicKey(ata), // PublicKey of Owner's Associated Token Account
-        toPubicKey(mint), // Public Key of the Token Mint Address
-        toPubicKey(options?.authority ?? env.wallet), // Public Key of Owner's Wallet
-        options?.amount ?? 1, // Number of tokens to burn
-        0 // Number of Decimals of the Token Mint
+        ata, toPubicKey(mint), owner, options?.amount ?? 1, 0
     );
     let latestBlockhash = await env.defaultConnection.getLatestBlockhash('finalized');
     const messageV0 = new TransactionMessage({
-      payerKey: toPubicKey(options?.authority ?? env.wallet),
+      payerKey: authority,
       recentBlockhash: latestBlockhash.blockhash,
       instructions: [burnIx]
     }).compileToV0Message();
