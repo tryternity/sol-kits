@@ -17,15 +17,11 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  TransactionMessage,
-  VersionedTransaction
 } from "@solana/web3.js";
 import {tx} from "./transaction";
 import {account, Address} from "./account";
 import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
-import * as token from "@solana/spl-token";
-import {createBurnCheckedInstruction} from "@solana/spl-token";
 
 export module mxKit {
 
@@ -110,30 +106,6 @@ export module mxKit {
       toOwner: toPubicKey(tokenOwner)
     })
     return output.response.signature
-  }
-
-  export async function burnSft(mint: Address, options?: {
-    amount?: number,
-    owner?: PublicKey | string
-    authority?: Keypair,
-  }) {
-    let authority = toPubicKey(options?.authority ?? env.wallet);
-    let owner = toPubicKey(options?.owner ?? authority);
-    let ata = token.getAssociatedTokenAddressSync(toPubicKey(mint), owner);
-    const burnIx = createBurnCheckedInstruction(
-        ata, toPubicKey(mint), owner, options?.amount ?? 1, 0
-    );
-    let latestBlockhash = await env.defaultConnection.getLatestBlockhash('finalized');
-    const messageV0 = new TransactionMessage({
-      payerKey: authority,
-      recentBlockhash: latestBlockhash.blockhash,
-      instructions: [burnIx]
-    }).compileToV0Message();
-    const transaction = new VersionedTransaction(messageV0);
-    transaction.sign([options?.authority ?? env.wallet])
-    const signature = await env.defaultConnection.sendTransaction(transaction).catch(ePrint);
-    await confirmTransaction(env.defaultConnection, signature);
-    return signature;
   }
 
   /**
