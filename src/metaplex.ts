@@ -47,24 +47,24 @@ export module mxKit {
 
   export async function createNft(tokenOwner: Address, options?: CreateNftInput | DefaultCreate): Promise<CreateCompressedNftOutput> {
     let mx: Metaplex = metaplex();
-    var input = {
+    const input = {
       tokenOwner: account.toPubicKey(tokenOwner),
       maxSupply: options?.maxSupply ?? new BN(0) as BigNumber,
       name: options?.name ?? "TEST",
       sellerFeeBasisPoints: options?.sellerFeeBasisPoints ?? 500,
       uri: options?.uri ?? "https://shdw-drive.genesysgo.net/4H5hPUt6ZD2ehs46ETy1x6wj5xK4SLEsUBhApRW8ZquX/4L8wcrVyc25KuZ8Rbg9yyzp1BZsEVgy929zDD9ZUEUfR.json",
       ...options,
-    }
+    };
     let out = await mx.nfts().create(input).catch(ePrint);
     let signature = out.response.signature;
     console.log("sig: " + signature, "nft: " + out.nft.address.toBase58(), "ata: " + out.tokenAddress.toBase58());
-    await mx.connection.confirmTransaction(signature).catch(ePrint);
+    await confirmTransaction(mx.connection, signature);
     return out;
   }
 
   export async function createSft(options?: CreateSftInput | DefaultCreate): Promise<CreateSftOutput> {
     let mx: Metaplex = metaplex();
-    var input = {
+    const input = {
       maxSupply: options?.maxSupply ?? new BN(0) as BigNumber,
       name: options?.name ?? "TEST",
       sellerFeeBasisPoints: options?.sellerFeeBasisPoints ?? 500,
@@ -74,20 +74,20 @@ export module mxKit {
     let out = await mx.nfts().createSft(input).catch(ePrint);
     let signature = out.response.signature;
     console.log("sig: " + signature, "nft: " + out.mintAddress.toBase58(), "ata: " + out.tokenAddress?.toBase58());
-    await mx.connection.confirmTransaction(signature).catch(ePrint);
+    await confirmTransaction(mx.connection, signature);
     return out;
   }
 
-  export async function mintNFT(mint: Address, tokenOwner: Address, options?: {
+  export async function mintSft(mint: Address, tokenOwner: Address, options?: {
     amount?: number,
     authority?: Keypair,
   }) {
     let mx: Metaplex = metaplex();
     let output = await mx.nfts().mint({
       amount: {
-        basisPoints: new BN(500) as BigNumber,
+        basisPoints: new BN(options?.amount ?? 1) as BigNumber,
         currency: {
-          symbol: 'TEST',
+          symbol: '',
           decimals: 0,
           namespace: 'spl-token'
         }
@@ -138,4 +138,13 @@ export module mxKit {
     let metaInfo = await connection.getAccountInfo(metaKey);
     return metaInfo != undefined && metaInfo.lamports > 0 && metaInfo.data.length > 0;
   }
+}
+
+async function confirmTransaction(connection: Connection, signature: string) {
+  let latestBlockhash = await connection.getLatestBlockhash('finalized');
+  await connection.confirmTransaction({
+    signature,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  }).catch(ePrint);
 }
