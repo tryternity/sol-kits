@@ -89,7 +89,7 @@ export module tokenX {
     connection?: Connection,
     from?: Keypair,
     amount?: number,
-    mint?: PublicKey
+    mint?: PublicKey | string
   }): Promise<string> {
     let conn = options?.connection ?? env.defaultConnection;
     let payer = options?.from ?? env.wallet;
@@ -104,9 +104,9 @@ export module tokenX {
       let tx = new web3.Transaction().add(instruction);
       return await web3.sendAndConfirmTransaction(conn, tx, [payer]).catch(ePrint);
     } else {
-      let mint = await getMint(conn, options.mint).catch(ePrint);
-      let fromAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, options.mint, payer.publicKey)).address;
-      let toAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, options.mint, account.toPubicKey(to))).address;
+      let mint = await getMint(conn, toPubicKey(options.mint)).catch(ePrint);
+      let fromAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, mint.address, payer.publicKey)).address;
+      let toAccount = (await getOrCreateAssociatedTokenAccount(conn, payer, mint.address, account.toPubicKey(to))).address;
       return await token.transfer(conn, payer, fromAccount, toAccount, payer.publicKey, amount * Math.pow(10, mint.decimals)).catch(ePrint);
     }
   }
