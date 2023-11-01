@@ -36,4 +36,4 @@ describe("metaplex1155 test", () => {
         })
     console.log(signature)
   })
-})
+});
