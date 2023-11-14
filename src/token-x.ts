@@ -39,7 +39,7 @@ export module tokenX {
 
   export async function airDrop(user: Address, options?: {
     connection?: Connection,
-    payerOrOwner?: Keypair,
+    from?: Keypair,
     amount?: number,
     mint?: PublicKey
   }): Promise<string> {
@@ -58,7 +58,7 @@ export module tokenX {
       return signature;
     } else {
       console.log("Begin mintTo", userKey.toBase58(), options.mint.toBase58(), amount);
-      let payerOrOwner = options.payerOrOwner ?? env.wallet;
+      let payerOrOwner = options.from ?? env.wallet;
       let mint = await getMint(connection, options.mint).catch(ePrint);
       let ata = await getOrCreateAssociatedTokenAccount(connection, payerOrOwner, options.mint, userKey);
       return await token.mintTo(
