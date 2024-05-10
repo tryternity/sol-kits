@@ -30,4 +30,24 @@ describe("metaplex test", () => {
     await metaplex.connection.confirmTransaction(signature).catch(ePrint);
     console.log(out.nft.address.toBase58())
   })
+
+  it("create mutantmon", async () => {
+    let metaplex: Metaplex = mxKit.metaplex();
+    let out = await metaplex.nfts().create({
+      uri: "https://shdw-drive.genesysgo.net/893AmBr2P9NVydpWc2TAkR3prwBtWMZH2A8RniDmduhn/1044_Light-Blue_Black.json",
+      name: 'Experiment #1044',
+      symbol: "MUTANT",
+      sellerFeeBasisPoints: 200,
+      tokenOwner: account.toPubicKey(env.wallet.publicKey),
+      maxSupply: new BN(0) as BigNumber,
+      tokenStandard: 4,
+      // isCollection: true,
+      // collectionIsSized: true,
+      ...{},
+    }).catch(ePrint);
+    let signature = out.response.signature;
+    console.log("sig: " + signature, "nft: " + out.nft.address.toBase58(), "ata: " + out.tokenAddress.toBase58());
+    await metaplex.connection.confirmTransaction(signature).catch(ePrint);
+    console.log(out.nft.address.toBase58())
+  })
 })

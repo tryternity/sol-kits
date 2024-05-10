@@ -153,7 +153,7 @@ export module cNFT {
 
     export async function createCompressedNFT(
         collection: PublicKey | string,
-        merkelTree: PublicKey | string,
+        merkleTree: PublicKey | string,
         metadata: MetadataArgs = {
             name: "ANY",
             symbol: "ANY",
@@ -174,7 +174,7 @@ export module cNFT {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
         let collectionMint = toKey(collection);
-        let treeKey = toKey(merkelTree);
+        let treeKey = toKey(merkleTree);
         // derive a PDA (owned by Bubblegum) to act as the (signer) of the compressed minting
         const [bubblegumSigner, _bump2] = PublicKey.findProgramAddressSync(
             // `collection_cpi` is a custom prefix required by the Bubblegum program
@@ -251,7 +251,7 @@ export module cNFT {
         }
     }
 
-    export async function unverified(merkelTree: PublicKey | string,
+    export async function unverified(merkleTree: PublicKey | string,
                                      nonce: number,
                                      wallet: Keypair = env.wallet,
                                      connection: Connection = env.defaultConnection,
@@ -259,7 +259,7 @@ export module cNFT {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
         // let collectionMint = toKey(collection);
-        let treeKey = toKey(merkelTree);
+        let treeKey = toKey(merkleTree);
         const [treeAuthority, _bump] = PublicKey.findProgramAddressSync([treeKey.toBuffer()], BUBBLEGUM_PROGRAM_ID);
 
         let assetId = await getAssertId(treeKey, nonce);
@@ -309,7 +309,7 @@ export module cNFT {
     }
 
     export async function transferCompressedNFT(
-        merkelTree: PublicKey | string,
+        merkleTree: PublicKey | string,
         assetId: PublicKey | string | number,
         to: PublicKey | string,
         wallet: Keypair = env.wallet,
@@ -318,7 +318,7 @@ export module cNFT {
     ) {
         connection = connection ?? env.defaultConnection;
         wallet = wallet ?? env.wallet;
-        let treeKey = toKey(merkelTree);
+        let treeKey = toKey(merkleTree);
         // retrieve the merkle tree's account from the blockchain
         const treeAccount = await ConcurrentMerkleTreeAccount.fromAccountAddress(connection, treeKey);
 
