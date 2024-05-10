@@ -2,7 +2,6 @@
 
 import {clusterApiUrl, Connection, Keypair} from "@solana/web3.js";
 import {account} from "./account";
-import {Wallet} from "@project-serum/anchor";
 
 export enum Env {
   local = 0,
@@ -31,12 +30,12 @@ export module env {
   export let wallet: Keypair = account.localWallet();
   export let defaultConnection: Connection = env.connection();
 
-  export function setEnv(cluster?: Env, payer?: Keypair | Wallet): Connection {
+  export function setEnv(cluster?: Env, payer?: Keypair): Connection {
     if (cluster) {
       defaultConnection = env.connection(cluster);
     }
     if (payer) {
-      wallet = payer instanceof Keypair ? payer : payer.payer;
+      wallet = payer;
     }
     return defaultConnection;
   }
