@@ -46,7 +46,7 @@ export module cNFT {
         );
     }
 
-    export async function getAssertId(tree: PublicKey | string, index: number): Promise<PublicKey> {
+    export async function getAssetId(tree: PublicKey | string, index: number): Promise<PublicKey> {
         return await getLeafAssetId(toKey(tree), new BN.BN(index));
     }
 
@@ -57,7 +57,7 @@ export module cNFT {
     }
 
     export async function getAssetByNonce(merkleTree: PublicKey | string, nonce: number, rpcUrl = HELIUS_RPC): Promise<any> {
-        let assetId = await getAssertId(merkleTree, nonce);
+        let assetId = await getAssetId(merkleTree, nonce);
         return await getAsset(assetId, rpcUrl);
     }
 
@@ -262,7 +262,7 @@ export module cNFT {
         let treeKey = toKey(merkleTree);
         const [treeAuthority, _bump] = PublicKey.findProgramAddressSync([treeKey.toBuffer()], BUBBLEGUM_PROGRAM_ID);
 
-        let assetId = await getAssertId(treeKey, nonce);
+        let assetId = await getAssetId(treeKey, nonce);
         let asset = await getAsset(assetId, rpcUrl);
         let assetProof = await getAssetProof(assetId, rpcUrl)
         let message = {
@@ -325,7 +325,7 @@ export module cNFT {
         // extract the needed values for our transfer instruction
         const treeAuthority = treeAccount.getAuthority();
         const canopyDepth = treeAccount.getCanopyDepth();
-        assetId = typeof assetId == 'number' ? await getAssertId(treeKey, assetId) : toKey(assetId);
+        assetId = typeof assetId == 'number' ? await getAssetId(treeKey, assetId) : toKey(assetId);
         console.log("treeAuthority:", treeAuthority.toBase58(), "canopyDepth:", canopyDepth, "assetId:", assetId.toBase58())
         let asset = await getAsset(assetId, rpcUrl);
         let assetProof = await getAssetProof(assetId, rpcUrl)
