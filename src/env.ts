@@ -19,8 +19,8 @@ export module env {
     }
   }
 
-  export function connection(env: Env = 1): Connection {
-    let network = cluster(env);
+  export function connection(env?: Env | string): Connection {
+    let network = typeof env == 'string' ? env : cluster(env ?? Env.devnet);
     return new Connection(network, {
       commitment: 'processed',
       confirmTransactionInitialTimeout: 120 * 1000
@@ -30,7 +30,7 @@ export module env {
   export let wallet: Keypair = account.localWallet();
   export let defaultConnection: Connection = env.connection();
 
-  export function setEnv(cluster?: Env, payer?: Keypair): Connection {
+  export function setEnv(cluster?: Env | string, payer?: Keypair): Connection {
     if (cluster) {
       defaultConnection = env.connection(cluster);
     }

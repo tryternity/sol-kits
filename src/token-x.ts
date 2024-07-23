@@ -11,9 +11,10 @@ import {
 import {ePrint} from "./kits";
 import * as token from "@solana/spl-token";
 import {
+  TOKEN_2022_PROGRAM_ID,
   createBurnCheckedInstruction,
   getMint,
-  getOrCreateAssociatedTokenAccount
+  getOrCreateAssociatedTokenAccount, mintTo
 } from "@solana/spl-token";
 import {account, Address} from "./account";
 import {Env, env} from "./env";
@@ -154,7 +155,7 @@ export module tokenX {
   }
 
   export async function mintSPL404(arg: {
-    env?: Env
+    env?: Env | string
     nftName: string,
     metaUri: string
   }) {
@@ -176,18 +177,10 @@ export module tokenX {
     }).sendAndConfirm(umi).catch(ePrint);
 
     let _mint = new PublicKey(mint.publicKey.toString());
-    console.log("mint:", _mint.toBase58());
+    console.log("mint:", mint.publicKey.toString(), "signature:", bs58.encode(ret.signature));
     let ata = await getOrCreateAssociatedTokenAccount(connection, env.wallet, _mint, env.wallet.publicKey).catch(ePrint);
     console.log("ata:", ata);
-    let signature = await token.mintTo(
-        connection,
-        env.wallet,
-        _mint,
-        ata.address,
-        env.wallet.publicKey,
-        1
-    ).catch(ePrint);
-
+    let signature = await mintTo(connection, env.wallet, _mint, ata.address, env.wallet, 1, [], undefined, TOKEN_2022_PROGRAM_ID).catch(ePrint);
     return {
       mint: _mint,
       signature: [bs58.encode(ret.signature), signature],

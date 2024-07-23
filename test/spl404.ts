@@ -4,16 +4,15 @@ import {
   generateSigner,
   percentAmount,
   publicKey,
-  PublicKey, signerIdentity,
+  PublicKey
 } from '@metaplex-foundation/umi'
 import {createUmi} from '@metaplex-foundation/umi-bundle-defaults'
 import {
   createV1, mintV1, mplTokenMetadata,
   TokenStandard,
 } from '@metaplex-foundation/mpl-token-metadata'
-import {env, tokenX} from "../dist";
+import {env, ePrint, tokenX} from "../src";
 import {fromWeb3JsKeypair} from "@metaplex-foundation/umi-web3js-adapters";
-import {clusterApiUrl} from "@solana/web3.js";
 import bs58 from 'bs58';
 import {findAssociatedTokenPda} from "@metaplex-foundation/mpl-toolbox";
 
@@ -24,7 +23,7 @@ const SPL_TOKEN_2022_PROGRAM_ID: PublicKey = publicKey(
 
 describe("SPL-404 test", () => {
   it("create spl-404", async () => {
-    const endpoint = clusterApiUrl('devnet');
+    const endpoint = "https://devnet.helius-rpc.com/?api-key=1a5deb03-d4bc-4b7a-b423-58d92148c0fe";
     console.log(env.wallet.publicKey.toBase58())
     const umi = createUmi(endpoint).use(mplTokenMetadata());
     const wallet = createSignerFromKeypair(umi, fromWeb3JsKeypair(env.wallet));
@@ -48,6 +47,7 @@ describe("SPL-404 test", () => {
       tokenProgramId: SPL_TOKEN_2022_PROGRAM_ID,
     });
     let ret2 = await mintV1(umi, {
+      token,
       mint: mint.publicKey,
       amount: 1,
       authority: umi.payer,
@@ -59,9 +59,10 @@ describe("SPL-404 test", () => {
 
   it("create spl-404 test2", async () => {
     let ret = await tokenX.mintSPL404({
+      env: "https://devnet.helius-rpc.com/?api-key=1a5deb03-d4bc-4b7a-b423-58d92148c0fe",
       nftName: "My NFT",
       metaUri: "https://arweave.net/h9gtgOX4ga15v0CzHmmIJK1lL7KaAng2WLsTn2hwTk0"
-    })
+    }).catch(ePrint)
     console.log(ret.mint.toBase58(), ret.signature)
   })
 })
