@@ -26,6 +26,8 @@ import {tokenX} from "./token-x";
 export module mxKit {
 
   import toPubicKey = account.toPubicKey;
+  export const TOKEN_METADATA_PID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+
   export let metaplex = (programId?: string | PublicKey): Metaplex => {
     let mx = Metaplex.make(env.defaultConnection)
     .use(keypairIdentity(env.wallet))
@@ -132,7 +134,6 @@ export module mxKit {
     if (mintInfo == undefined || mintInfo.lamports == 0) {
       return false;
     }
-    let TOKEN_METADATA_PID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
     let [metaKey] = PublicKey.findProgramAddressSync([
           Buffer.from("metadata"),
           TOKEN_METADATA_PID.toBuffer(),

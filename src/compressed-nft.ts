@@ -27,7 +27,6 @@ import {
     MetadataArgs,
     PROGRAM_ID as BUBBLEGUM_PROGRAM_ID,
 } from '@metaplex-foundation/mpl-bubblegum';
-import {PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,} from '@metaplex-foundation/mpl-token-metadata';
 import {env} from "./env";
 import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/types/TokenStandard";
@@ -39,6 +38,7 @@ export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-
 export const META_TEST_URL = "https://arweave.net/eoKQ-WzDWzZwajfJpz8btdHteONr4BrchTG1RdZ-wGg";
 
 export module cNFT {
+    const TOKEN_METADATA_PID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
     export async function treeAccount(tree: string | PublicKey, connection: Connection): Promise<ConcurrentMerkleTreeAccount> {
         return await ConcurrentMerkleTreeAccount.fromAccountAddress(
             connection ?? env.defaultConnection,
@@ -187,19 +187,19 @@ export module cNFT {
         const [collectionMetadataAccount, _b1] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("metadata", "utf8"),
-                TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+                TOKEN_METADATA_PID.toBuffer(),
                 collectionMint.toBuffer(),
             ],
-            TOKEN_METADATA_PROGRAM_ID
+            TOKEN_METADATA_PID
         );
         const [collectionEditionAccount, _b2] = PublicKey.findProgramAddressSync(
             [
                 Buffer.from("metadata", "utf8"),
-                TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+                TOKEN_METADATA_PID.toBuffer(),
                 collectionMint.toBuffer(),
                 Buffer.from("edition", "utf8"),
             ],
-            TOKEN_METADATA_PROGRAM_ID
+            TOKEN_METADATA_PID
         );
         const compressedMintIx = createMintToCollectionV1Instruction(
             {
@@ -224,7 +224,7 @@ export module cNFT {
                 bubblegumSigner: bubblegumSigner,
                 compressionProgram: SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
                 logWrapper: SPL_NOOP_PROGRAM_ID,
-                tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+                tokenMetadataProgram: TOKEN_METADATA_PID,
             },
             {
                 metadataArgs: Object.assign(metadata, {

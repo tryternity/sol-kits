@@ -16,10 +16,24 @@ import {
   getOrCreateAssociatedTokenAccount
 } from "@solana/spl-token";
 import {account, Address} from "./account";
-import {env} from "./env";
+import {Env, env} from "./env";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {fromWeb3JsKeypair} from "@metaplex-foundation/umi-web3js-adapters";
+import {
+  createSignerFromKeypair,
+  generateSigner, keypairIdentity,
+  percentAmount,
+  publicKey,
+  PublicKey as UmiPublicKey,
+} from "@metaplex-foundation/umi";
+import {createV1, mplTokenMetadata, TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
+import bs58 from "bs58";
 
 export module tokenX {
   import toPubicKey = account.toPubicKey;
+  export const SPL_TOKEN_2022_PROGRAM_ID: UmiPublicKey = publicKey(
+      'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+  )
 
   export async function create(options?: {
     connection?: Connection,
@@ -137,5 +151,46 @@ export module tokenX {
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
     });
     return signature;
+  }
+
+  export async function mintSPL404(arg: {
+    env?: Env
+    nftName: string,
+    metaUri: string
+  }) {
+    const connection = env.connection(arg.env ?? Env.devnet);
+    const umi = createUmi(connection).use(mplTokenMetadata());
+    let keypair = fromWeb3JsKeypair(env.wallet);
+    const wallet = createSignerFromKeypair(umi, keypair);
+    umi.use(keypairIdentity(wallet))
+
+    let mint = generateSigner(umi)
+    let ret = await createV1(umi, {
+      mint,
+      authority: wallet,
+      name: arg.nftName,
+      uri: arg.metaUri,
+      sellerFeeBasisPoints: percentAmount(5.5),
+      splTokenProgram: SPL_TOKEN_2022_PROGRAM_ID,
+      tokenStandard: TokenStandard.NonFungible,
+    }).sendAndConfirm(umi).catch(ePrint);
+
+    let _mint = new PublicKey(mint.publicKey.toString());
+    console.log("mint:", _mint.toBase58());
+    let ata = await getOrCreateAssociatedTokenAccount(connection, env.wallet, _mint, env.wallet.publicKey).catch(ePrint);
+    console.log("ata:", ata);
+    let signature = await token.mintTo(
+        connection,
+        env.wallet,
+        _mint,
+        ata.address,
+        env.wallet.publicKey,
+        1
+    ).catch(ePrint);
+
+    return {
+      mint: _mint,
+      signature: [bs58.encode(ret.signature), signature],
+    }
   }
 }
