@@ -1,4 +1,4 @@
-import {tx} from "../dist";
+import {tx} from "../src";
 import {Keypair} from "@solana/web3.js";
 
 describe('create lookup table', function () {

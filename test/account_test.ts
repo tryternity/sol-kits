@@ -1,4 +1,4 @@
-import {account, kits} from "../dist";
+import {account, kits} from "../src";
 
 describe("account test", () => {
     it("load local id.json", async () => {

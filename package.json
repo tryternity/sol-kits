@@ -1,6 +1,6 @@
 {
   "name": "sol-kits",
-  "version": "0.0.39",
+  "version": "0.0.40",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -16,6 +16,7 @@
   "dependencies": {
     "@kaciras/deasync": "^1.0.3",
     "@metaplex-foundation/js": "^0.19.4",
+    "@metaplex-foundation/mpl-core": "^1.1.0",
     "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
     "@metaplex-foundation/umi": "^0.9.1",
     "@metaplex-foundation/umi-bundle-defaults": "^0.9.1",

@@ -1,6 +1,6 @@
-import {Env, env, kits, mxKit} from "../dist";
+import {Env, env, kits, mxKit} from "../src";
 import {AccountMeta, PublicKey} from "@solana/web3.js";
-import {cNFT, META_TEST_URL} from "../dist/compressed-nft";
+import {cNFT, META_TEST_URL} from "../src/compressed-nft";
 import * as fs from "fs";
 import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
 

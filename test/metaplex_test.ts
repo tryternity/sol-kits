@@ -1,5 +1,7 @@
+// noinspection DuplicatedCode
+
 import {BigNumber, Metaplex} from "@metaplex-foundation/js";
-import {account, env, ePrint, mxKit} from "../dist";
+import {account, env, ePrint, mxKit} from "../src";
 import {BN} from "@project-serum/anchor";
 
 describe("metaplex test", () => {

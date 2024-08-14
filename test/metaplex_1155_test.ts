@@ -1,4 +1,4 @@
-import {account, env, mxKit, tokenX} from "../dist";
+import {account, env, mxKit, tokenX} from "../src";
 
 describe("metaplex1155 test", () => {
   it("create sft", async () => {

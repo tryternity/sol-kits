@@ -1,6 +1,6 @@
-import {env} from "../dist";
+import {env} from "../src";
 import {Keypair} from "@solana/web3.js";
-import {Env, account} from "../dist";
+import {Env, account} from "../src";
 
 describe("env test", () => {
   it("env test", async () => {

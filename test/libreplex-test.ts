@@ -1,7 +1,7 @@
 import {mintSingle, setupCollection} from "@libreplex/sdk";
 import * as anchor from "@coral-xyz/anchor";
 import {PublicKey} from "@solana/web3.js";
-import {Env, env} from "../dist";
+import {Env, env} from "../src";
 
 process.env.ANCHOR_WALLET = "/Users/user/.config/solana/id.json";
 process.env.ANCHOR_PROVIDER_URL = env.cluster(Env.devnet);

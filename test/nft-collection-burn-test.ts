@@ -1,4 +1,4 @@
-import {env, mxKit} from "../dist";
+import {env, mxKit} from "../src";
 
 describe("nft collection burn test", () => {
     it("check collection burn", async () => {
