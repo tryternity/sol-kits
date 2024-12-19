@@ -28,10 +28,10 @@ import {
     PROGRAM_ID as BUBBLEGUM_PROGRAM_ID,
 } from '@metaplex-foundation/mpl-bubblegum';
 import {env} from "./env";
-import BN from "bn.js";
 import {TokenStandard} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/types/TokenStandard";
 import {TokenProgramVersion} from "@metaplex-foundation/mpl-bubblegum/dist/src/generated/types/TokenProgramVersion";
 import {ePrint} from "./kits";
+import BN from "bn.js";
 
 export const HELIUS_RPC = "https://rpc-devnet.helius.xyz/?api-key=d4654c49-78d9-49cf-9a9f-4d5b0c9074d9";
 

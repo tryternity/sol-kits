@@ -2,7 +2,7 @@
 
 import {BigNumber, Metaplex} from "@metaplex-foundation/js";
 import {account, env, ePrint, mxKit} from "../src";
-import {BN} from "@project-serum/anchor";
+import {BN} from "@coral-xyz/anchor";
 
 describe("metaplex test", () => {
   it("create nft", async () => {

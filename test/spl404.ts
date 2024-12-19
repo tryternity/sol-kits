@@ -11,7 +11,7 @@ import {
   createV1, mintV1, mplTokenMetadata,
   TokenStandard,
 } from '@metaplex-foundation/mpl-token-metadata'
-import {env, ePrint, tokenX} from "../src";
+import {env, ePrint, spl_404} from "../src";
 import {fromWeb3JsKeypair} from "@metaplex-foundation/umi-web3js-adapters";
 import bs58 from 'bs58';
 import {findAssociatedTokenPda} from "@metaplex-foundation/mpl-toolbox";
@@ -53,13 +53,16 @@ describe("SPL-404 test", () => {
       authority: umi.payer,
       tokenOwner: umi.payer.publicKey,
       tokenStandard: TokenStandard.NonFungible,
+      splTokenProgram: SPL_TOKEN_2022_PROGRAM_ID
     }).sendAndConfirm(umi);
     console.log(bs58.encode(ret2.signature))
   })
 
   it("create spl-404 test2", async () => {
-    let ret = await tokenX.mintSPL404({
-      env: "https://devnet.helius-rpc.com/?api-key=1a5deb03-d4bc-4b7a-b423-58d92148c0fe",
+    let endPoint = "https://devnet.helius-rpc.com/?api-key=1a5deb03-d4bc-4b7a-b423-58d92148c0fe";
+    env.setEnv(endPoint)
+    let ret = await spl_404.createMpl404({
+      env: endPoint,
       nftName: "My NFT",
       metaUri: "https://arweave.net/h9gtgOX4ga15v0CzHmmIJK1lL7KaAng2WLsTn2hwTk0"
     }).catch(ePrint)

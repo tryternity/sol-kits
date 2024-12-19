@@ -28,8 +28,17 @@ export module spl_404 {
     }).sendAndConfirm(umi).catch(ePrint);
 
     let _mint = new PublicKey(mint.publicKey.toString());
-    console.log(mint.publicKey.toString(), bs58.encode(ret.signature));
-    let ata = await getOrCreateAssociatedTokenAccount(env.defaultConnection, env.wallet, _mint, env.wallet.publicKey).catch(ePrint);
+    console.log("mint", mint.publicKey.toString(), bs58.encode(ret.signature));
+    let ata = await getOrCreateAssociatedTokenAccount(
+        env.defaultConnection,
+        env.wallet,
+        _mint,
+        env.wallet.publicKey,
+        true,
+        undefined,
+        undefined,
+        TOKEN_2022_PROGRAM_ID,
+        undefined).catch(ePrint);
     console.log("ata:", ata);
     let signature = await mintTo(env.defaultConnection, env.wallet, _mint, ata.address, env.wallet, 1, [], undefined, TOKEN_2022_PROGRAM_ID).catch(ePrint);
     return {

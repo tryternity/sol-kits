@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
-import * as anchor from "@project-serum/anchor";
-import {web3} from "@project-serum/anchor";
+import * as anchor from "@coral-xyz/anchor";
+import {web3} from "@coral-xyz/anchor";
 import {
   AddressLookupTableAccount,
   Keypair,
