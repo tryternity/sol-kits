@@ -10,6 +10,7 @@ import {env} from "./env";
 import bs58 from "bs58";
 import {generateSigner} from "@metaplex-foundation/umi";
 import base58 from "bs58";
+import {kits} from "./kits";
 
 export module mpl_core {
   export async function transfer(asset: PublicKey | string, newOwner: PublicKey | string, signer?: Keypair, collection?: PublicKey | string) {
@@ -25,33 +26,41 @@ export module mpl_core {
     return bs58.encode(ret.signature);
   }
 
-  export async function createCollection(arg: {
-    name: string,
-    uri: string,
-  }): Promise<[PublicKey, string]> {
+  const uri = "https://arweave.net/-UUOtLiB4db50w5QWxhHVNUKbAAEfzGXtIbcY2VRJ5A";
+
+  export async function createCollection(arg?: {
+    name?: string,
+    uri?: string,
+  }): Promise<PublicKey> {
     const umi = env.umi().use(mplCore())
     const collection = generateSigner(umi)
     let ret = await createCollectionV1(umi, {
-      ...arg,
+      name: arg?.name ?? "CoreCollection",
+      uri: arg?.uri ?? uri,
       collection: collection,
       updateAuthority: env.toUmiPublicKey(env.wallet.publicKey)
     }).sendAndConfirm(umi);
-    return [new PublicKey(collection.publicKey), base58.encode(ret.signature)]
+    kits.printExplorerUrl(collection.publicKey)
+    kits.printExplorerUrl(base58.encode(ret.signature))
+    return new PublicKey(collection.publicKey)
   }
 
-  export async function createCore(arg: {
-    name: string,
-    uri: string,
-  }, collection?: PublicKey | string): Promise<[PublicKey, string]> {
+  export async function createCore(collection?: PublicKey | string, arg?: {
+    name?: string,
+    uri?: string,
+  }): Promise<PublicKey> {
     const umi = env.umi().use(mplCore())
     const asset = generateSigner(umi)
     const result = await createV1(umi, {
-      ...arg,
+      name: arg?.name ?? "CoreNFT",
+      uri: arg?.uri ?? uri,
       asset: asset,
       collection: collection ? env.toUmiPublicKey(collection) : undefined,
       updateAuthority: !!collection ? undefined : env.toUmiPublicKey(env.wallet.publicKey),
     }).sendAndConfirm(umi)
-    return [new PublicKey(asset.publicKey), base58.encode(result.signature)]
+    kits.printExplorerUrl(asset.publicKey)
+    kits.printExplorerUrl(base58.encode(result.signature))
+    return new PublicKey(asset.publicKey)
   }
 
   export async function data(asset: PublicKey | string) {
