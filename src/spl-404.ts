@@ -1,7 +1,9 @@
-import {env, Env} from "./env";
-import {createV1, mplTokenMetadata, TokenStandard} from "@metaplex-foundation/mpl-token-metadata";
+import {env} from "./env";
+import {createFungible, mplTokenMetadata,} from '@metaplex-foundation/mpl-token-metadata'
 import {
+  createSignerFromKeypair,
   generateSigner,
+  keypairIdentity,
   percentAmount
 } from "@metaplex-foundation/umi";
 import {ePrint, kits} from "./kits";
@@ -28,6 +30,8 @@ import {
   TYPE_SIZE
 } from "@solana/spl-token";
 import {pack, TokenMetadata} from "@solana/spl-token-metadata";
+import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
+import {fromWeb3JsKeypair, fromWeb3JsPublicKey} from "@metaplex-foundation/umi-web3js-adapters";
 
 export module spl_404 {
   export type Metadata = {
@@ -36,13 +40,9 @@ export module spl_404 {
     uri?: string,
     additionalMetadata?: (readonly [string, string])[]
   };
-  export type Spl404Ret = {
-    mint: PublicKey,
-    initSig: string,
-    mintSig: string
-  }
 
-  export async function createTokenAndMint(wallet: Keypair, meta?: Metadata): Promise<Spl404Ret> {
+  // see https://www.quicknode.com/guides/solana-development/spl-tokens/token-2022/nft
+  export async function createSpl404AndMint(wallet: Keypair, amount: number = 1, meta?: Metadata): Promise<PublicKey> {
     // After calculating the minimum balance for the mint account...
     let mintKeypair = Keypair.generate();
     let mint = mintKeypair.publicKey;
@@ -121,48 +121,41 @@ export module spl_404 {
     // Create associated token account
     const sourceAccount = await createAssociatedTokenAccountIdempotent(env.defaultConnection, payer, mint, owner.publicKey, {}, TOKEN_2022_PROGRAM_ID);
     // Mint NFT to associated token account
-    const mintSig = await mintTo(env.defaultConnection, payer, mint, sourceAccount, authority, 1, [], undefined, TOKEN_2022_PROGRAM_ID);
+    const mintSig = await mintTo(env.defaultConnection, payer, mint, sourceAccount, authority, amount, [], undefined, TOKEN_2022_PROGRAM_ID);
     console.log("mint:" + mint.toBase58());
     kits.printExplorerUrl(initSig);
     kits.printExplorerUrl(mintSig);
-    return {mint, initSig, mintSig}
+    return mint
   }
 
-  export async function createMpl404(arg: {
-    env?: Env | string
-    nftName: string,
-    metaUri: string
-  }) {
-    const umi = env.umi(arg.env).use(mplTokenMetadata())
-    let mint = generateSigner(umi)
-    let ret = await createV1(umi, {
-      mint,
-      authority: env.toUmiSigner(env.wallet),
-      name: arg.nftName,
-      uri: arg.metaUri,
-      sellerFeeBasisPoints: percentAmount(5.5),
-      splTokenProgram: env.SPL_TOKEN_2022_PROGRAM_ID,
-      tokenStandard: TokenStandard.NonFungible,
-    }).sendAndConfirm(umi).catch(ePrint);
+  // see https://developers.metaplex.com/guides/javascript/how-to-create-a-solana-token
+  export async function createMpl404(wallet: Keypair, amount: number = 1, meta?: Metadata): Promise<PublicKey> {
+    const umi = createUmi(env.defaultConnection.rpcEndpoint).use(mplTokenMetadata());
+    const keypair = createSignerFromKeypair(umi, fromWeb3JsKeypair(wallet));
+    umi.use(keypairIdentity(keypair))
 
-    let _mint = new PublicKey(mint.publicKey.toString());
-    console.log("mint", mint.publicKey.toString(), bs58.encode(ret.signature));
-    let ata = await getOrCreateAssociatedTokenAccount(
-        env.defaultConnection,
-        env.wallet,
-        _mint,
-        env.wallet.publicKey,
-        true,
-        undefined,
-        undefined,
-        TOKEN_2022_PROGRAM_ID,
-        undefined).catch(ePrint);
-    console.log("ata:", ata);
-    let initSig = bs58.encode(ret.signature);
-    let mintSig = await mintTo(env.defaultConnection, env.wallet, _mint, ata.address, env.wallet, 1, [], undefined, TOKEN_2022_PROGRAM_ID).catch(ePrint);
-    return {
-      mint: _mint,
-      signature: [initSig, mintSig],
-    }
+    const mintSigner = generateSigner(umi);
+    let tokenProgram = TOKEN_2022_PROGRAM_ID;
+    let createTx = await createFungible(umi, {
+      mint: mintSigner,
+      authority: env.toUmiSigner(wallet),
+      name: meta?.name ?? 'QN Pixel',
+      symbol: meta?.symbol ?? 'QNPIX',
+      uri: meta?.uri ?? "https://qn-shared.quicknode-ipfs.com/ipfs/QmQFh6WuQaWAMLsw9paLZYvTsdL5xJESzcoSxzb6ZU3Gjx",
+      splTokenProgram: fromWeb3JsPublicKey(tokenProgram),
+      sellerFeeBasisPoints: percentAmount(0),
+      decimals: 0
+    }).sendAndConfirm(umi).catch(ePrint)
+    let initSig = bs58.encode(createTx.signature);
+    let _mint = new PublicKey(mintSigner.publicKey.toString());
+    kits.printExplorerUrl(_mint.toBase58());
+    kits.printExplorerUrl(initSig)
+
+    let ata = await getOrCreateAssociatedTokenAccount(env.defaultConnection, wallet, _mint, wallet.publicKey, true, undefined, undefined, tokenProgram)
+    kits.printExplorerUrl(ata.address.toBase58());
+
+    let mintSig = await mintTo(env.defaultConnection, wallet, _mint, ata.address, wallet, amount, [], undefined, tokenProgram)
+    kits.printExplorerUrl(mintSig)
+    return _mint
   }
 }
