@@ -3,6 +3,7 @@
 import {Buffer} from "buffer";
 import crypto from "crypto";
 import {v4 as v4_uuid} from 'uuid';
+import {PublicKey} from "@solana/web3.js";
 
 export const ePrint = (e: any) => {
   console.log(e);
@@ -92,13 +93,19 @@ export module kits {
     return result;
   }
 
-  export function printExplorerUrl(identifier: string, cluster: string = "devnet"): string {
+  export function printExplorerUrl(identifier: string | PublicKey, cluster: string = "devnet"): string {
     if (!identifier) return '';
     const baseUrl = 'https://solscan.io';
     const localSuffix = !cluster ? "" : '?cluster=' + cluster;
-    const slug = identifier.length > 60 ? 'tx' : 'address';
-    let url = `${baseUrl}/${slug}/${identifier}${localSuffix}`;
-    console.log(url);
-    return url;
+    if (identifier instanceof PublicKey) {
+      let url = `${baseUrl}/address/${identifier.toBase58()}${localSuffix}`;
+      console.log(url);
+      return url;
+    } else {
+      const slug = identifier.length > 60 ? 'tx' : 'address';
+      let url = `${baseUrl}/${slug}/${identifier}${localSuffix}`;
+      console.log(url);
+      return url;
+    }
   }
 }

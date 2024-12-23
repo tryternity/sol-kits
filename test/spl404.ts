@@ -1,4 +1,5 @@
 import {env, ePrint, spl_404} from "../src";
+import {PublicKey} from "@solana/web3.js";
 
 describe("SPL-404 test", () => {
   beforeEach("init env", () => {
@@ -14,6 +15,12 @@ describe("SPL-404 test", () => {
 
   it("create spl-404", async () => {
     await spl_404.createSpl404AndMint(env.wallet).catch(ePrint);
+  })
+
+  it("transfer spl 404", async () => {
+    await spl_404.transfer(new PublicKey("DwEsUAF4fbbbFoNwwEtLfen3YPgtmSs5qwTda8axG61f"),
+        env.wallet,
+        new PublicKey("9nAnJiUWz25VeXLDimwAxSYDPE4vPZjnCTJ3jMbQuMFs"))
   })
 })
 

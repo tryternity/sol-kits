@@ -7,3 +7,4 @@ export * from './store';
 export * from './metaplex';
 export * from './mpl-core'
 export * from './spl-404'
+export * from './compressed-nft'

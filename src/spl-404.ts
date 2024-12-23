@@ -7,6 +7,22 @@ import {
   percentAmount
 } from "@metaplex-foundation/umi";
 import {ePrint, kits} from "./kits";
+import * as token from "@solana/spl-token";
+import {
+  createAssociatedTokenAccountIdempotent,
+  createInitializeInstruction,
+  createInitializeMetadataPointerInstruction,
+  createInitializeMintInstruction,
+  createUpdateFieldInstruction,
+  ExtensionType,
+  getAssociatedTokenAddressSync,
+  getMintLen,
+  getOrCreateAssociatedTokenAccount,
+  LENGTH_SIZE,
+  mintTo,
+  TOKEN_2022_PROGRAM_ID,
+  TYPE_SIZE
+} from "@solana/spl-token";
 import {
   Keypair,
   PublicKey,
@@ -15,20 +31,6 @@ import {
   Transaction
 } from "@solana/web3.js";
 import bs58 from "bs58";
-import {
-  createAssociatedTokenAccountIdempotent,
-  createInitializeInstruction,
-  createInitializeMetadataPointerInstruction,
-  createInitializeMintInstruction,
-  createUpdateFieldInstruction,
-  ExtensionType,
-  getMintLen,
-  getOrCreateAssociatedTokenAccount,
-  LENGTH_SIZE,
-  mintTo,
-  TOKEN_2022_PROGRAM_ID,
-  TYPE_SIZE
-} from "@solana/spl-token";
 import {pack, TokenMetadata} from "@solana/spl-token-metadata";
 import {createUmi} from "@metaplex-foundation/umi-bundle-defaults";
 import {fromWeb3JsKeypair, fromWeb3JsPublicKey} from "@metaplex-foundation/umi-web3js-adapters";
@@ -40,6 +42,17 @@ export module spl_404 {
     uri?: string,
     additionalMetadata?: (readonly [string, string])[]
   };
+
+  export async function transfer(mint: PublicKey, src: Keypair, dst: PublicKey, amount: number = 1): Promise<string> {
+    let srcAta = getAssociatedTokenAddressSync(mint, src.publicKey, true, TOKEN_2022_PROGRAM_ID)
+    kits.printExplorerUrl(srcAta)
+    let dstAta = await getOrCreateAssociatedTokenAccount(env.defaultConnection, src, mint, dst, true, undefined, undefined, TOKEN_2022_PROGRAM_ID)
+    kits.printExplorerUrl(dstAta.address)
+    let sig = await token.transfer(env.defaultConnection,
+        env.wallet, srcAta, dstAta.address, src, amount, [], undefined, TOKEN_2022_PROGRAM_ID).catch(ePrint);
+    kits.printExplorerUrl(sig)
+    return sig;
+  }
 
   // see https://www.quicknode.com/guides/solana-development/spl-tokens/token-2022/nft
   export async function createSpl404AndMint(wallet: Keypair, amount: number = 1, meta?: Metadata): Promise<PublicKey> {

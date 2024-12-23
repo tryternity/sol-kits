@@ -374,10 +374,12 @@ export module cNFT {
     // send the transaction to the cluster
     const tx = new Transaction().add(transferIx);
     tx.feePayer = wallet.publicKey;
-    return await sendAndConfirmTransaction(env.defaultConnection, tx, [wallet], {
+    let sig = await sendAndConfirmTransaction(env.defaultConnection, tx, [wallet], {
       commitment: "confirmed",
       skipPreflight: true,
     });
+    kits.printExplorerUrl(sig)
+    return sig;
   }
 }
 
