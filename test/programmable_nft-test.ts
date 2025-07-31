@@ -1,4 +1,4 @@
-import {env, mxKit, pNFT} from "../src";
+import {pNFT} from "../src";
 
 describe("programmable nft test", () => {
   it('collection', async () => {
@@ -10,5 +10,9 @@ describe("programmable nft test", () => {
       name: "test",
       collection: "8fx33bT4ewHjTLFKTq16tHsdJKBZEA6YcL2WLNEUBNUH"
     });
+  })
+
+  it("transfer", async () => {
+    await pNFT.transfer("FoLSCrZ8Vmu3AgnvgG1C2JJns896W1UWCVEUstqz6Maz", "")
   })
 })

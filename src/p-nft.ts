@@ -1,42 +1,12 @@
-import {
-  Connection,
-  PublicKey,
-  Keypair,
-  Transaction,
-  sendAndConfirmTransaction,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-} from '@solana/web3.js';
-import {
-  Metaplex,
-  keypairIdentity,
-  bundlrStorage,
-  toMetaplexFile,
-  CreateNftInput,
-  NftWithToken,
-  Sft, CreatorInput, Option,
-} from '@metaplex-foundation/js';
-import {
-  TokenStandard,
-  // createCreateMasterEditionV3Instruction,
-  createMasterEditionV3,
-  // createCreateMetadataAccountV3Instruction,
-  createMetadataAccountV3,
-  DataV2,
-  Collection,
-  Uses,
-  Creator,
-} from '@metaplex-foundation/mpl-token-metadata';
-import {
-  createMint,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-  TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
+import {Keypair, PublicKey,} from '@solana/web3.js';
+import {CreateNftInput, CreatorInput, Option,} from '@metaplex-foundation/js';
+import {TokenStandard, Uses,} from '@metaplex-foundation/mpl-token-metadata';
 import {env} from "./env";
 import {mxKit} from "./metaplex";
 import {Nft} from "@metaplex-foundation/js/src/plugins/nftModule/models/Nft";
 import {kits} from "./kits";
+import BN from "bn.js";
+import {account} from "./account";
 
 // 可编程NFT数据接口
 export interface ProgrammableNFTData {
@@ -58,6 +28,8 @@ const meta_uri = "https://shdw-drive.genesysgo.net/4H5hPUt6ZD2ehs46ETy1x6wj5xK4S
 // 可编程NFT类
 export namespace pNFT {
 // 创建可编程NFT集合
+  import toPubicKey = account.toPubicKey;
+
   export async function createCollection(
       name?: string,
       symbol?: string,
@@ -136,6 +108,37 @@ export namespace pNFT {
       console.log('NFT集合验证成功');
     } catch (error) {
       console.error('验证集合失败:', error);
+      throw error;
+    }
+  }
+
+  // 转移可编程NFT
+  export async function transfer(
+      mintAddress: PublicKey | string,
+      toAddress: PublicKey | string,
+      authority?: Keypair,
+      amount: number = 1,
+      decimals: number = 0
+  ): Promise<void> {
+    try {
+      let signature = await mxKit.metaplex().nfts().transfer({
+        nftOrSft: await mxKit.metaplex().nfts().findByMint({
+          mintAddress: toPubicKey(mintAddress)
+        }),
+        toOwner: toPubicKey(toAddress),
+        authority: authority ?? env.wallet,
+        amount: {
+          basisPoints: new BN(amount * 10000) as any,
+          currency: {
+            symbol: 'Token',
+            decimals: decimals,
+            namespace: "spl-token"
+          }
+        },
+      });
+      console.log('可编程NFT转移成功:' + signature.response.signature);
+    } catch (error) {
+      console.error('转移NFT失败:', error);
       throw error;
     }
   }
