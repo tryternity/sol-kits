@@ -249,7 +249,7 @@ export module cNFT {
     }).catch(ePrint);
     let treeAccount: ConcurrentMerkleTree = (await ConcurrentMerkleTreeAccount.fromAccountAddress(connection, treeKey).catch(ePrint)).tree;
     treeAccount.changeLogs = [];
-    let mint = await getAssetId(treeKey, new BN(treeAccount.sequenceNumber).toNumber() - 1)
+    let mint = await getAssetId(treeKey, new BN(treeAccount.rightMostPath.index).toNumber() - 1)
     kits.printExplorerUrl(mint.toBase58());
     kits.printExplorerUrl(txSignature)
     return {

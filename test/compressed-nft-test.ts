@@ -4,7 +4,7 @@ import {cNFT, META_TEST_URL} from "../src/compressed-nft";
 import * as fs from "fs";
 import {ConcurrentMerkleTreeAccount} from "@solana/spl-account-compression";
 
-let merkleTree = new PublicKey("BTe4LBXJ1MriaS9ZAFn4nBPXHjCrZvrUS9furP3tsKEY");
+let merkleTree = new PublicKey("3rYpS9NmKRC9Dj9ZvpwU8Yw2mQ3kmdL6Qoq9NpWGDFoU");
 let collection = "DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6WK3GChEySUpHSS4x";
 let RPC = "https://devnet.helius-rpc.com/?api-key=1a5deb03-d4bc-4b7a-b423-58d92148c0fe";
 describe('compressed nft', function () {
@@ -13,20 +13,25 @@ describe('compressed nft', function () {
   })
 
   it("getAssertId", async () => {
-    let assetId1 = await cNFT.getAssetId(merkleTree, 1);
+    let assetId1 = await cNFT.getAssetId(merkleTree, 6);
     console.log(assetId1.toBase58());
 
-    let assetId2 = await cNFT.getAssetId(merkleTree, 207487);
-    console.log(assetId2.toBase58());
+    // let assetId2 = await cNFT.getAssetId(merkleTree, 207487);
+    // console.log(assetId2.toBase58());
   })
 
   it("getAssetByNonce", async () => {
-    let meta = await cNFT.getAssetByNonce(merkleTree, 1, RPC);
+    let meta = await cNFT.getAssetByNonce(merkleTree, 6, RPC);
+    console.log(JSON.stringify(meta));
+  })
+
+  it("getAsset", async () => {
+    let meta = await cNFT.getAsset("J9PdQNcADuTWeDjcH3LjryJazSesepwEu4yudLcnyMJU", RPC);
     console.log(JSON.stringify(meta));
   })
 
   it("get merkle tree data", async () => {
-    let tree = await cNFT.treeAccount(merkleTree, env.connection(Env.mainnet));
+    let tree = await cNFT.treeAccount(merkleTree, env.connection(Env.devnet));
     console.log(JSON.stringify(tree));
   });
 
@@ -40,7 +45,7 @@ describe('compressed nft', function () {
   })
 
   it("get asset metadata", async () => {
-    let assetId = "26HEsktiRbtUsfykurTNh2so1qnyffxCXLJswqATNBf6";
+    let assetId = "Hn737hLoS4LSdhqRDwxixJp62n6a9KkLFTvq9EYaUNyq";
     let asset = await cNFT.getAsset(new PublicKey(assetId), RPC);
     console.log(JSON.stringify(asset));
   });

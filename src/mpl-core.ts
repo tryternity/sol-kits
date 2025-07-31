@@ -57,6 +57,7 @@ export module mpl_core {
       asset: asset,
       collection: collection ? env.toUmiPublicKey(collection) : undefined,
       updateAuthority: !!collection ? undefined : env.toUmiPublicKey(env.wallet.publicKey),
+      plugins: []
     }).sendAndConfirm(umi)
     kits.printExplorerUrl(asset.publicKey)
     kits.printExplorerUrl(base58.encode(result.signature))
